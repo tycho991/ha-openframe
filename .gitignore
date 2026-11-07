@@ -1,0 +1,6 @@
+# Personal Claude Code approvals stay local and do not belong in the repo
+.claude/settings.local.json
+
+# Python
+.venv/
+__pycache__/

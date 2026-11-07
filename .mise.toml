@@ -1,0 +1,25 @@
+[tools]
+node = "24.22.2"
+"npm:@fission-ai/openspec" = "1.15.0"
+# Home Assistant 2026.10 requires Python >= 3.14.2
+python = "3.14.8"
+uv = "0.12.23"
+
+[env]
+OPENSPEC_TELEMETRY = "0"
+DO_NOT_TRACK = "1"
+
+# OpenSpec reads profile and delivery from the machine's global config
+# (~/.config/openspec/config.json). These tasks set them before init and before
+# every update, so every machine and the CI generate the same skills.
+[tasks.openspec-profile]
+description = "Set the OpenSpec profile and delivery for this project (before openspec init)"
+run = [
+  "openspec config set profile core",
+  "openspec config set delivery both",
+]
+
+[tasks.openspec-sync]
+description = "Bring skills and commands in line with the pinned OpenSpec version and project profile"
+depends = ["openspec-profile"]
+run = "openspec update --force"
