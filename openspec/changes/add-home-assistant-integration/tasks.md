@@ -49,5 +49,5 @@
 ## Workflow follow-up
 
 - Implement after openframe's `add-slideshow-control-api` is released; pin its tag in `tests/contract/OPENFRAME_VERSION`.
-- `tycho991/ha-openframe` exists as a private repository; the owner sets its merge settings like openframe's and makes it public before the first release, because HACS cannot install from a private repository.
+- `tycho991/ha-openframe` exists as a public repository; the owner sets its merge settings like openframe's.
 - Archive the change after the device rows of 6.1 are done; then `add-home-assistant-card` can start.
