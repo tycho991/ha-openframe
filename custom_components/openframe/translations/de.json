@@ -259,5 +259,11 @@
     "refused": {
       "message": "Der Rahmen hat den Befehl abgelehnt: {message}"
     }
+  },
+  "issues": {
+    "outdated_frame": {
+      "title": "{name} braucht ein neueres openframe",
+      "description": "{name} bietet einen Endpunkt nicht mehr an, den diese Integration braucht, zum Beispiel weil darauf ein älteres openframe installiert wurde. Aktualisiere den Rahmen auf openframe {version} oder neuer; Home Assistant verbindet sich danach von selbst wieder."
+    }
   }
 }

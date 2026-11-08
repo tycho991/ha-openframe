@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import OpenframeConfigEntry, OpenframeCoordinator
-from .entity import OpenframeEntity, add_dynamic_entities, source_of
+from .entity import OpenframeEntity, SourceEntity, add_dynamic_entities
 
 
 async def async_setup_entry(
@@ -78,20 +78,11 @@ class LeaveSafeModeButton(OpenframeEntity, ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
-class SyncButton(OpenframeEntity, ButtonEntity):
+class SyncButton(SourceEntity, ButtonEntity):
     """Start a sync of one remote source."""
 
     def __init__(self, coordinator: OpenframeCoordinator, source_id: str) -> None:
-        super().__init__(coordinator, f"sync_{source_id}", translation_key="sync")
-        self.source_id = source_id
-        source = source_of(coordinator.data, source_id)
-        self._attr_translation_placeholders = {
-            "source": source["settings"]["name"] if source else source_id
-        }
-
-    @property
-    def available(self) -> bool:
-        return super().available and source_of(self.data, self.source_id) is not None
+        super().__init__(coordinator, "sync", source_id)
 
     async def async_press(self) -> None:
         await self.command(self.coordinator.client.sync_source(self.source_id))

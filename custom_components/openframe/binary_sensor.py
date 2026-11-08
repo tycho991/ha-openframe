@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import OpenframeConfigEntry, OpenframeCoordinator
-from .entity import OpenframeEntity, add_dynamic_entities, source_of
+from .entity import OpenframeEntity, SourceEntity, add_dynamic_entities
 
 
 async def async_setup_entry(
@@ -55,29 +55,20 @@ class TransitionFallbackSensor(OpenframeEntity, BinarySensorEntity):
         return self.data.state["transitionFallback"]
 
 
-class SyncProblemSensor(OpenframeEntity, BinarySensorEntity):
+class SyncProblemSensor(SourceEntity, BinarySensorEntity):
     """On while the last sync of a source failed, with the error."""
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, coordinator: OpenframeCoordinator, source_id: str) -> None:
-        super().__init__(coordinator, f"sync_problem_{source_id}", translation_key="sync_problem")
-        self.source_id = source_id
-        source = source_of(coordinator.data, source_id)
-        self._attr_translation_placeholders = {
-            "source": source["settings"]["name"] if source else source_id
-        }
-
-    @property
-    def available(self) -> bool:
-        return super().available and source_of(self.data, self.source_id) is not None
+        super().__init__(coordinator, "sync_problem", source_id)
 
     @property
     def is_on(self) -> bool | None:
-        source = source_of(self.data, self.source_id)
+        source = self.source
         return None if source is None else source["status"]["ok"] is False
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        source = source_of(self.data, self.source_id)
+        source = self.source
         return None if source is None else {"error": source["status"]["error"]}

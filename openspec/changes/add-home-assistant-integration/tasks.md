@@ -30,6 +30,8 @@
 - [x] 4.8 Health: `safe_mode` and `transition_fallback` binary sensors, `leave_safe_mode` button; translated `HomeAssistantError`s for refused and unanswered commands; verify: tests for every scenario of "Health of the frame" and "Errors of commands"
 - [x] 4.9 Complete the entity table and the automation examples in `README.md`; verify: every entity key of design decision 6 appears in the table, and both translation files have the same keys (a test)
 
+- [x] 4.10 Review follow-ups: a repair issue `outdated_frame` while an added frame answers 404, removed once it answers and with the entry; source entities share a base class and follow a renamed source; verify: tests for "Frame downgraded after setup" and "Source renamed"
+
 ## 5. CI, releases, dependencies
 
 - [x] 5.1 Workflows `ci.yml` (ruff check, ruff format check, pytest, contract copy equals the pinned tag), `validate.yml` (hassfest, HACS action), `pr-title.yml` (`openspec-drift.yml` exists from the template), all `uses:` pinned to SHAs with version comments and checkouts with `persist-credentials: false`; verify: `uv run ruff check`, `uv run ruff format --check` and `uv run pytest` pass locally, and `actionlint` (if available) reports nothing
