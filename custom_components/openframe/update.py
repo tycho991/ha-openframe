@@ -1,7 +1,8 @@
 """The app update: installed and latest openframe version, installed through the frame.
 
 Installing opens Android's installation dialog on the frame, which someone confirms there. It is
-not offered while Android does not let openframe install apps or the app is no official build.
+offered for an update the frame has downloaded and verified, and not while Android does not let
+openframe install apps.
 """
 
 from __future__ import annotations
@@ -44,7 +45,8 @@ class AppUpdate(OpenframeEntity, UpdateEntity):
         features = UpdateEntityFeature.PROGRESS
         if update["latest"] is not None:
             features |= UpdateEntityFeature.RELEASE_NOTES
-        if update["installAllowed"] and update["phase"] != "unsupported":
+        # Only a downloaded and verified update can be installed; anything else is refused
+        if update["installAllowed"] and update["phase"] == "ready":
             features |= UpdateEntityFeature.INSTALL
         return features
 

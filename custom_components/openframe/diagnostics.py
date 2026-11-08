@@ -6,16 +6,19 @@ from dataclasses import asdict
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.const import CONF_TOKEN
+from homeassistant.const import CONF_HOST, CONF_TOKEN
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_CLIENT_ID
 from .coordinator import OpenframeConfigEntry
 
-# The pairing, signed image URLs, and what names a person's photos, servers or accounts
+# The pairing, the frame's address, signed image URLs, and what names a person's photos, folders,
+# servers or accounts
 TO_REDACT = {
     CONF_TOKEN,
     CONF_CLIENT_ID,
+    CONF_HOST,
+    "folder",
     "urls",
     "cover",
     "path",

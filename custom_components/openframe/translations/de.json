@@ -49,7 +49,8 @@
       "already_configured": "Dieser Rahmen ist bereits eingerichtet.",
       "cannot_connect": "Der Rahmen hat während des Koppelns aufgehört zu antworten. Versuche es erneut.",
       "outdated_frame": "Die openframe-App des Rahmens ist zu alt. Aktualisiere sie auf openframe {version} oder neuer und füge den Rahmen erneut hinzu.",
-      "wrong_frame": "Unter der gespeicherten Adresse antwortet ein anderer Rahmen. Gib über „Neu konfigurieren“ die neue Adresse des Rahmens ein."
+      "wrong_frame": "Unter der gespeicherten Adresse antwortet ein anderer Rahmen. Gib über „Neu konfigurieren“ die neue Adresse des Rahmens ein.",
+      "unexpected_answer": "Der Rahmen hat bei der Prüfung der Kopplung unerwartet geantwortet: {message}"
     }
   },
   "entity": {

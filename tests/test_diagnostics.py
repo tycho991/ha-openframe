@@ -7,7 +7,7 @@ import logging
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_TOKEN
+from homeassistant.const import CONF_HOST, CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -28,6 +28,8 @@ async def test_diagnostics(hass: HomeAssistant, frame: FakeFrame) -> None:
     diagnostics = await async_get_config_entry_diagnostics(hass, config_entry)
 
     assert diagnostics["entry"][CONF_TOKEN] == "**REDACTED**"
+    assert diagnostics["entry"][CONF_HOST] == "**REDACTED**"
+    assert diagnostics["data"]["sources"][0]["settings"]["folder"] == "**REDACTED**"
     assert diagnostics["data"]["info"]["appVersion"] == "0.5.0"
     assert diagnostics["data"]["state"]["libraryVersion"] == frame.library_version
     dump = json.dumps(diagnostics)

@@ -174,6 +174,10 @@ class FakeFrame:
     # Seconds the frame waits before it answers
     delay: float = 0.0
     paused: bool = False
+    # Expiry part of the image signatures; the real frame moves it every full hour
+    signature_hour: int = 0
+    # Answer GET /slideshow with 401 although the token is valid (a hiccup of the frame)
+    reject_slideshow: bool = False
     # Index into the visible photos of the photo on screen, None while none is shown
     current: int | None = 0
 
@@ -325,7 +329,7 @@ class FakeFrame:
 
     def photo_json(self, photo: FakePhoto) -> dict[str, Any]:
         base = f"{PREFIX}/photos/{photo.id}/image"
-        signature = "sig" + photo.id[-6:]
+        signature = f"{self.signature_hour}.sig{photo.id[-6:]}"
         return {
             "id": photo.id,
             "source": photo.source,
@@ -480,6 +484,8 @@ class FakeFrame:
                 self.display.update(on=body["on"], cause="manual")
                 return web.json_response(self.display)
             case ("GET", ["slideshow"]):
+                if self.reject_slideshow:
+                    return error(401, "unauthorized")
                 if self.safe_mode:
                     return error(503, "safe_mode")
                 return web.json_response(self.slideshow_json())

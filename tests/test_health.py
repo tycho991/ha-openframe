@@ -79,8 +79,12 @@ async def test_refused_command(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
     """frame-entities › Errors of commands: a refusal fails with a translated message."""
-    frame.update.update(phase="idle", latest={"version": "0.6.0", "notes": "", "publishedAt": None})
+    frame.update.update(
+        phase="ready", latest={"version": "0.6.0", "notes": "", "publishedAt": None}
+    )
     await tick(hass, freezer, 60)
+    # The download is dropped on the frame before the next poll
+    frame.update["phase"] = "idle"
     with pytest.raises(HomeAssistantError) as caught:
         await call(hass, "update", "install", entity_id(hass, "update", "app"))
     assert caught.value.translation_key == "update_not_ready"

@@ -1,9 +1,10 @@
 """One coordinator per frame that polls cheaply and reads the heavy parts only when they change.
 
 Every 15 seconds it reads the state, the display and the slideshow. Sources and the update state
-follow every minute, or every tick while a sync or an update runs. Settings, albums, the info and
-the photo totals are read when the library, settings or app version in the state changed, after a
-command that changes them, and in any case every 10 minutes.
+follow every minute, or every tick while a sync or an update runs. Albums and photo totals are
+read when the library version in the state changed, the settings when the settings version changed,
+the info when the app version changed; all of them after a command that changes them, and in any
+case every 10 minutes.
 """
 
 from __future__ import annotations
@@ -118,23 +119,29 @@ class OpenframeCoordinator(DataUpdateCoordinator[FrameData]):
             or now - self._medium_at >= MEDIUM_INTERVAL - SLACK
         )
         if medium_due:
-            self._force_medium = False
             sources = await client.get_sources()
             update = await client.get_update()
+            # Cleared only after the reads succeeded: a failed tick keeps the request
+            self._force_medium = False
             self._medium_at = now
         else:
             assert previous is not None
             sources, update = previous.sources, previous.update
 
         versions = (state["libraryVersion"], state["settingsVersion"], state["appVersion"])
-        full_due = (
+        changed = (
+            [True, True, True]
+            if self._versions is None
+            else [new != old for new, old in zip(versions, self._versions, strict=True)]
+        )
+        everything = (
             previous is None
             or self._force_full
-            or versions != self._versions
             or self._full_at is None
             or now - self._full_at >= FULL_INTERVAL - SLACK
         )
-        if not full_due:
+        library_due, settings_due, app_due = (everything or c for c in changed)
+        if not (library_due or settings_due or app_due):
             assert previous is not None
             return replace(
                 previous,
@@ -144,14 +151,30 @@ class OpenframeCoordinator(DataUpdateCoordinator[FrameData]):
                 sources=sources,
                 update=update,
             )
-        self._force_full = False
-        settings = await client.get_settings()
-        albums = await client.get_albums()
-        info = await client.get_info()
-        photos_total = await client.count_photos()
-        photos_visible = await client.count_photos(visible=True)
+        # Each version names what it covers: the library its albums and photos, the settings
+        # their values, the app version the info
+        if library_due:
+            albums = await client.get_albums()
+            photos_total = await client.count_photos()
+            photos_visible = await client.count_photos(visible=True)
+        else:
+            assert previous is not None
+            albums = previous.albums
+            photos_total, photos_visible = previous.photos_total, previous.photos_visible
+        if settings_due:
+            settings = await client.get_settings()
+        else:
+            assert previous is not None
+            settings = previous.settings
+        if app_due:
+            info = await client.get_info()
+        else:
+            assert previous is not None
+            info = previous.info
         self._versions = versions
-        self._full_at = now
+        if everything:
+            self._force_full = False
+            self._full_at = now
         return FrameData(
             state=state,
             display=display,

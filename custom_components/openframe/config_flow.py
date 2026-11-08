@@ -152,13 +152,17 @@ class OpenframeConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             await client.get_slideshow()
         except OpenframeResponseError as err:
-            # 503 means safe mode: the endpoint exists. Anything else, 404 above all, means an app
-            # before the slideshow API.
-            if err.status != 503:
+            # 503 safe_mode: the endpoint exists, only the slideshow rests
+            if (err.status, err.code) != (503, "safe_mode"):
                 await self._revoke(client, client_id)
+                if err.status == 404:
+                    # An app before the slideshow API
+                    return self.async_abort(
+                        reason="outdated_frame",
+                        description_placeholders={"version": MIN_OPENFRAME_VERSION},
+                    )
                 return self.async_abort(
-                    reason="outdated_frame",
-                    description_placeholders={"version": MIN_OPENFRAME_VERSION},
+                    reason="unexpected_answer", description_placeholders={"message": err.message}
                 )
         except OpenframeConnectionError:
             await self._revoke(client, client_id)

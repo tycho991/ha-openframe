@@ -71,6 +71,20 @@ async def test_unofficial_build_offers_no_install(
     assert not state.attributes[ATTR_SUPPORTED_FEATURES] & UpdateEntityFeature.INSTALL
 
 
+async def test_no_install_before_the_download(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.update.update(
+        phase="idle",
+        latest=RELEASE,
+        error={"code": "update_checksum", "message": "The checksum does not match."},
+    )
+    await tick(hass, freezer, 60)
+    state = hass.states.get(entity_id(hass, "update", "app"))
+    assert state.state == STATE_ON
+    assert not state.attributes[ATTR_SUPPORTED_FEATURES] & UpdateEntityFeature.INSTALL
+
+
 async def test_in_progress_while_downloading(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:

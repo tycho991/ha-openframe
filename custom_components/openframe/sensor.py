@@ -21,6 +21,8 @@ from homeassistant.util import dt as dt_util
 from .coordinator import FrameData, OpenframeConfigEntry, OpenframeCoordinator
 from .entity import OpenframeEntity, add_dynamic_entities, source_of
 
+MAX_STATE = 255
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -62,7 +64,9 @@ class CurrentPhotoSensor(OpenframeEntity, SensorEntity):
         photo = self._photo
         if photo is None:
             return None
-        return photo["comment"] or photo["path"].rpartition("/")[2]
+        name = photo["comment"] or photo["path"].rpartition("/")[2]
+        # A comment may have 500 characters; Home Assistant keeps a state of at most 255
+        return name if len(name) <= MAX_STATE else name[: MAX_STATE - 1] + "…"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:

@@ -27,9 +27,10 @@ messages. The only German texts are the translations users see in
 - `openspec validate <change>` must end with exit 0 and without warnings. Keep requirements under
   500 characters.
 - Both translation files have the same keys; a test checks this.
-- GitHub Actions: pin every `uses:` to a full 40-character commit SHA with a `# vX.Y.Z` comment,
-  give every checkout `persist-credentials: false`, and pass `version: ${{ env.MISE_VERSION }}`
-  and a minimal `install_args` to every mise step.
+- GitHub Actions: pin every `uses:` to a full 40-character commit SHA with a `# vX.Y.Z` comment;
+  an action whose maintainers document a branch instead of releases (hassfest, `hacs/action`)
+  carries the branch name (`# master`, `# main`). Give every checkout `persist-credentials: false`,
+  and pass `version: ${{ env.MISE_VERSION }}` and a minimal `install_args` to every mise step.
 - Do not enable Renovate automerge.
 
 ## Versions and releases

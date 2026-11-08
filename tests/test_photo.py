@@ -32,6 +32,16 @@ async def test_new_photo(
     assert state.attributes["taken_at"] == photo.taken_at
 
 
+async def test_long_comment_is_cut_to_a_valid_state(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.add_photo("a/1.jpg", comment="x" * 500)
+    await tick(hass, freezer)
+    state = hass.states.get(entity_id(hass, "sensor", "current_photo")).state
+    assert len(state) == 255
+    assert state.endswith("…")
+
+
 async def test_photo_without_comment(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
@@ -68,6 +78,13 @@ async def test_image_follows_photo_and_section(
 
     await tick(hass, freezer)
     assert hass.states.get(image).state == first, "unchanged poll"
+
+    frame.signature_hour += 1  # a new signature every full hour, same image
+    frame.library_version += 1
+    await tick(hass, freezer)
+    assert hass.states.get(image).state == first, "new signature only"
+    await image_of(hass)
+    assert frame.count("GET", f"/photos/{photo.id}/image") == 1
 
     photo.part = "b2"  # a new section of the same photo
     frame.library_version += 1

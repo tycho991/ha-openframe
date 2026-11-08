@@ -15,13 +15,10 @@ from tests.fake_frame import FakeFrame
 
 FAST = [("GET", "/state"), ("GET", "/display"), ("GET", "/slideshow")]
 MEDIUM = [("GET", "/sources"), ("GET", "/update")]
-FULL = [
-    ("GET", "/settings"),
-    ("GET", "/albums"),
-    ("GET", "/info"),
-    ("GET", "/photos"),
-    ("GET", "/photos"),
-]
+LIBRARY = [("GET", "/albums"), ("GET", "/photos"), ("GET", "/photos")]
+SETTINGS = [("GET", "/settings")]
+APP = [("GET", "/info")]
+FULL = LIBRARY + SETTINGS + APP
 
 
 def coordinator(entry: MockConfigEntry) -> OpenframeCoordinator:
@@ -92,8 +89,40 @@ async def test_setting_changed_in_the_web_ui(
     frame.settings_version += 1
     frame.reset_requests()
     await tick(hass, freezer)
-    assert frame.requests == FAST + FULL
+    assert frame.requests == FAST + SETTINGS
     assert coordinator(entry).data.settings["intervalSeconds"] == 60
+
+
+async def test_library_change_reads_albums_and_totals(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.add_photo("a/1.jpg")
+    frame.reset_requests()
+    await tick(hass, freezer)
+    assert frame.requests == FAST + LIBRARY
+    assert coordinator(entry).data.photos_total == 1
+
+
+async def test_app_update_reads_the_info(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.info["appVersion"] = "0.6.0"
+    frame.reset_requests()
+    await tick(hass, freezer)
+    assert frame.requests == FAST + APP
+
+
+async def test_requested_read_survives_a_failed_tick(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    coordinator(entry).request_medium()
+    coordinator(entry).request_full()
+    frame.unreachable = True
+    await tick(hass, freezer)
+    frame.unreachable = False
+    frame.reset_requests()
+    await tick(hass, freezer)
+    assert frame.requests == FAST + MEDIUM + FULL
 
 
 async def test_sources_every_tick_while_syncing(

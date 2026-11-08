@@ -2,11 +2,14 @@
 
 The signed image URLs of the API are not handed to Home Assistant: they expire after two hours,
 and the frame is not reachable from outside the LAN. ``image_last_updated`` changes when the photo
-or its display URL changes (the URL carries the image version and the key of the shown part), so
-the frontend reloads the image exactly then.
+or its display URL without the signature changes (the URL carries the image version and the key of
+the shown part; the signature `t` changes every hour), so the frontend reloads the image exactly
+then.
 """
 
 from __future__ import annotations
+
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from homeassistant.components.image import ImageEntity
 from homeassistant.core import HomeAssistant, callback
@@ -23,6 +26,13 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     async_add_entities([CurrentPhotoImage(hass, entry.runtime_data)])
+
+
+def unsigned(url: str) -> str:
+    """The display URL without its signature, which changes every hour for the same image."""
+    parsed = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k != "t"]
+    return urlunsplit(parsed._replace(query=urlencode(query)))
 
 
 class CurrentPhotoImage(OpenframeEntity, ImageEntity):
@@ -49,7 +59,7 @@ class CurrentPhotoImage(OpenframeEntity, ImageEntity):
     def _follow_photo(self) -> None:
         slideshow = self.data.slideshow
         photo = slideshow["photo"] if slideshow else None
-        shown = None if photo is None else (photo["id"], photo["urls"]["display"])
+        shown = None if photo is None else (photo["id"], unsigned(photo["urls"]["display"]))
         if shown != self._shown:
             self._shown = shown
             self._attr_image_last_updated = None if shown is None else dt_util.utcnow()

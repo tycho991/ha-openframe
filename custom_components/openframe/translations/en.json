@@ -49,7 +49,8 @@
       "already_configured": "This frame is already set up.",
       "cannot_connect": "The frame stopped answering during the pairing. Try again.",
       "outdated_frame": "The frame's openframe app is too old. Update it to openframe {version} or later and add the frame again.",
-      "wrong_frame": "Another frame answers at the stored address. Use Reconfigure to enter the frame's new address."
+      "wrong_frame": "Another frame answers at the stored address. Use Reconfigure to enter the frame's new address.",
+      "unexpected_answer": "The frame answered the pairing check unexpectedly: {message}"
     }
   },
   "entity": {

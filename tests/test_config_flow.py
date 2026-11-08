@@ -153,6 +153,17 @@ async def test_frame_before_the_slideshow_api(
     assert frame.clients == {}, "the new pairing is revoked again"
 
 
+async def test_unexpected_answer_is_not_called_outdated(
+    hass: HomeAssistant, frame: FakeFrame, no_setup
+) -> None:
+    frame.reject_slideshow = True
+    result = await start(hass, frame)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"code": frame.code})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "unexpected_answer"
+    assert frame.clients == {}
+
+
 async def test_frame_in_safe_mode_can_be_added(
     hass: HomeAssistant, frame: FakeFrame, no_setup
 ) -> None:
