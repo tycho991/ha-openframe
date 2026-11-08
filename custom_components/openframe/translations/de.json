@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "openframe-Rahmen hinzufügen",
+        "description": "Gib die Adresse des Rahmens ein. Seine Weboberfläche zeigt sie auf der Startseite, zum Beispiel 192.168.100.215 und Port 8080.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Rahmens.",
+          "port": "Port der Weboberfläche des Rahmens, 8080, wenn nicht geändert."
+        }
+      },
+      "pair": {
+        "title": "Mit {name} koppeln",
+        "description": "Der Rahmen {name} zeigt jetzt einen sechsstelligen Kopplungscode. Gib ihn hier ein.",
+        "data": {
+          "code": "Kopplungscode"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{name} erneut koppeln",
+        "description": "Der Rahmen {name} akzeptiert die Kopplung von Home Assistant nicht mehr. Wenn du fortfährst, zeigt der Rahmen einen neuen Kopplungscode."
+      },
+      "reconfigure": {
+        "title": "Neue Adresse des Rahmens",
+        "description": "Gib die neue Adresse des Rahmens ein. Die Kopplung bleibt erhalten.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Rahmens.",
+          "port": "Port der Weboberfläche des Rahmens, 8080, wenn nicht geändert."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Keine Verbindung zum Rahmen. Prüfe die Adresse und ob der Rahmen eingeschaltet ist.",
+      "not_openframe": "Unter dieser Adresse antwortet kein openframe-Rahmen.",
+      "invalid_code": "Falscher Code. Gib die sechs Ziffern ein, die der Rahmen zeigt.",
+      "expired_code": "Der Code ist abgelaufen. Der Rahmen zeigt jetzt einen neuen Code.",
+      "locked": "Das Koppeln ist nach zu vielen falschen Codes gesperrt. Warte eine Minute und versuche es erneut.",
+      "wrong_frame": "Unter dieser Adresse antwortet ein anderer Rahmen."
+    },
+    "abort": {
+      "already_configured": "Dieser Rahmen ist bereits eingerichtet.",
+      "cannot_connect": "Der Rahmen hat während des Koppelns aufgehört zu antworten. Versuche es erneut.",
+      "outdated_frame": "Die openframe-App des Rahmens ist zu alt. Aktualisiere sie auf openframe {version} oder neuer und füge den Rahmen erneut hinzu.",
+      "wrong_frame": "Unter der gespeicherten Adresse antwortet ein anderer Rahmen. Gib über „Neu konfigurieren“ die neue Adresse des Rahmens ein."
+    }
+  }
+}

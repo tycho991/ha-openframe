@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add an openframe frame",
+        "description": "Enter the address of the frame. Its web UI shows it on the start screen, for example 192.168.100.215 and port 8080.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP address or host name of the frame.",
+          "port": "Port of the frame's web UI, 8080 unless changed."
+        }
+      },
+      "pair": {
+        "title": "Pair with {name}",
+        "description": "The frame {name} now shows a six-digit pairing code. Type it here.",
+        "data": {
+          "code": "Pairing code"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Pair {name} again",
+        "description": "The frame {name} no longer accepts Home Assistant's pairing. When you continue, the frame shows a new pairing code."
+      },
+      "reconfigure": {
+        "title": "New address of the frame",
+        "description": "Enter the frame's new address. The pairing is kept.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP address or host name of the frame.",
+          "port": "Port of the frame's web UI, 8080 unless changed."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the frame. Check the address and that the frame is switched on.",
+      "not_openframe": "No openframe frame answers at this address.",
+      "invalid_code": "Wrong code. Type the six digits the frame shows.",
+      "expired_code": "The code has expired. The frame now shows a new code.",
+      "locked": "Pairing is locked after too many wrong codes. Wait a minute and try again.",
+      "wrong_frame": "Another frame answers at this address."
+    },
+    "abort": {
+      "already_configured": "This frame is already set up.",
+      "cannot_connect": "The frame stopped answering during the pairing. Try again.",
+      "outdated_frame": "The frame's openframe app is too old. Update it to openframe {version} or later and add the frame again.",
+      "wrong_frame": "Another frame answers at the stored address. Use Reconfigure to enter the frame's new address."
+    }
+  }
+}

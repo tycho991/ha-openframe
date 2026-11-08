@@ -4,7 +4,6 @@ from typing import Final
 
 DOMAIN: Final = "openframe"
 
-CONF_TOKEN: Final = "token"
 CONF_CLIENT_ID: Final = "client_id"
 
 DEFAULT_PORT: Final = 8080

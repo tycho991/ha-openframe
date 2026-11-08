@@ -13,10 +13,10 @@
 
 ## 3. Connection
 
-- [ ] 3.1 Config flow steps `user` and `pair`, the outdated-frame check and revocation (design decision 3), translations of all errors in `translations/en.json` and `translations/de.json`; verify: tests for every scenario of "Adding a frame by its address", "Pairing with the code on the frame" and "Minimum frame version" in `frame-connection`
-- [ ] 3.2 Re-authentication and reconfiguration flows and `async_remove_entry`; verify: tests for every scenario of "Re-authentication after a revoked pairing", "Changed address" and "Removing a frame"
-- [ ] 3.3 `OpenframeCoordinator` with the three tiers of design decision 4, safe mode as `slideshow = None`, `ConfigEntryAuthFailed` on 401; verify: tests with a frozen clock for "Polling the frame" (request counts per tier on the fake frame, the full tier on a changed `settingsVersion`, the faster sources tier while syncing) and "Availability"
-- [ ] 3.4 `diagnostics.py` with the token and client ID redacted; verify: test for "Token kept private" › "Diagnostics", and a test that the log of a failed setup does not contain the token
+- [x] 3.1 Config flow steps `user` and `pair`, the outdated-frame check and revocation (design decision 3), translations of all errors in `translations/en.json` and `translations/de.json`; verify: tests for every scenario of "Adding a frame by its address", "Pairing with the code on the frame" and "Minimum frame version" in `frame-connection`
+- [x] 3.2 Re-authentication and reconfiguration flows and `async_remove_entry`; verify: tests for every scenario of "Re-authentication after a revoked pairing", "Changed address" and "Removing a frame"
+- [x] 3.3 `OpenframeCoordinator` with the three tiers of design decision 4, safe mode as `slideshow = None`, `ConfigEntryAuthFailed` on 401; verify: tests with a frozen clock for "Polling the frame" (request counts per tier on the fake frame, the full tier on a changed `settingsVersion`, the faster sources tier while syncing) and "Availability"
+- [x] 3.4 `diagnostics.py` with the token and client ID redacted; verify: test for "Token kept private" › "Diagnostics", and a test that the log of a failed setup does not contain the token
 
 ## 4. Entities
 
