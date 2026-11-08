@@ -32,9 +32,9 @@
 
 ## 5. CI, releases, dependencies
 
-- [ ] 5.1 Workflows `ci.yml` (ruff check, ruff format check, pytest, contract copy equals the pinned tag), `validate.yml` (hassfest, HACS action), `pr-title.yml` (`openspec-drift.yml` exists from the template), all `uses:` pinned to SHAs with version comments and checkouts with `persist-credentials: false`; verify: `uv run ruff check`, `uv run ruff format --check` and `uv run pytest` pass locally, and `actionlint` (if available) reports nothing
-- [ ] 5.2 `release-please-config.json` and `.release-please-manifest.json` with `manifest.json` as extra file and non-draft releases, `release-please.yml`; verify: the config validates against release-please's schema and names `custom_components/openframe/manifest.json`
-- [ ] 5.3 `renovate.json` with the pip/uv, GitHub Actions and mise managers and the custom regex manager for `OPENFRAME_VERSION`; `renovate-artifacts.yml` that runs `tools/update-contract.sh` on Renovate's branches and pushes the contract; verify: `npx --yes --package renovate -- renovate-config-validator` passes
+- [x] 5.1 Workflows `ci.yml` (ruff check, ruff format check, pytest, contract copy equals the pinned tag), `validate.yml` (hassfest, HACS action), `pr-title.yml` (`openspec-drift.yml` exists from the template), all `uses:` pinned to SHAs with version comments and checkouts with `persist-credentials: false`; verify: `uv run ruff check`, `uv run ruff format --check` and `uv run pytest` pass locally, and `actionlint` (if available) reports nothing
+- [x] 5.2 `release-please-config.json` and `.release-please-manifest.json` with `manifest.json` as extra file and non-draft releases, `release-please.yml`; verify: the config validates against release-please's schema and names `custom_components/openframe/manifest.json`
+- [x] 5.3 `renovate.json` with the pip/uv, GitHub Actions and mise managers and the custom regex manager for `OPENFRAME_VERSION`; `renovate-artifacts.yml` that runs `tools/update-contract.sh` on Renovate's branches and pushes the contract; verify: `npx --yes --package renovate -- renovate-config-validator` passes
 
 ## 6. Devices
 

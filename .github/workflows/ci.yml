@@ -1,0 +1,50 @@
+name: ci
+# Lint, format check, tests against the fake frame, and the contract copy against openframe's pinned release.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # renovate-artifacts starts it after pushing the updated contract (a push with GITHUB_TOKEN starts no workflow).
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+  # mise itself, pinned like the tools it installs; Renovate raises it (customManagers in renovate.json).
+  MISE_VERSION: "2026.10.23"
+  DO_NOT_TRACK: "1"
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        with:
+          version: ${{ env.MISE_VERSION }}
+          # Only Python and uv from .mise.toml, no Node or OpenSpec.
+          install_args: python uv
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check
+
+      - name: Format
+        run: uv run ruff format --check
+
+      - name: Tests
+        run: uv run pytest
+
+      - name: Contract copy equals the pinned openframe release
+        run: |
+          tools/update-contract.sh "$(cat tests/contract/OPENFRAME_VERSION)"
+          git diff --exit-code -- tests/contract
