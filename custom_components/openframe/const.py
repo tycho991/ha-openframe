@@ -1,6 +1,5 @@
 """Constants of the openframe integration."""
 
-from datetime import timedelta
 from typing import Final
 
 DOMAIN: Final = "openframe"

@@ -28,3 +28,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ASYNC"]
+# The client passes an HTTP timeout to aiohttp, not a cancel scope
+ignore = ["ASYNC109"]
+# Spec references in test docstrings use `capability › Requirement › Scenario`
+allowed-confusables = ["›"]
