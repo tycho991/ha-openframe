@@ -46,17 +46,19 @@ Errors in `pair`: `invalid_code` (401 `invalid_code`), `expired_code` (401 `expi
 every tick (15 s):     GET /state, GET /display, GET /slideshow
 every 4th tick (60 s): GET /sources, GET /update        (every tick while a source syncs
                                                          or phase is checking/downloading/installing)
-on a version change:   GET /settings, GET /albums, GET /info,
-  or every 10 min      GET /photos?limit=1, GET /photos?visible=true&limit=1   (totals only)
+on a version change:   libraryVersion  → GET /albums, GET /photos?limit=1,
+  or every 10 min                         GET /photos?visible=true&limit=1  (totals only)
+  (all three)          settingsVersion → GET /settings
+                       appVersion      → GET /info
 ```
 
-`GET /slideshow` answering 503 `safe_mode` is not a failure: `FrameData.slideshow` becomes `None` and the slideshow entities become unavailable. A 401 anywhere raises `ConfigEntryAuthFailed`; other errors raise `UpdateFailed`, whose logging (once on loss, once on recovery) is the coordinator's own. After a command an entity calls `coordinator.async_set_updated_data` with the state the command returned (`POST /slideshow`, `PUT /display`, `PATCH /settings`, `PATCH /albums`), or `async_request_refresh` where the answer is not a full state; a settings or album change also forces the full tier on the next tick.
+`GET /slideshow` answering 503 `safe_mode` is not a failure: `FrameData.slideshow` becomes `None` and the slideshow entities become unavailable. A 401 anywhere raises `ConfigEntryAuthFailed`; other errors raise `UpdateFailed`, whose logging (once on loss, once on recovery) is the coordinator's own. After a command an entity calls `coordinator.async_set_updated_data` with the state the command returned (`POST /slideshow`, `PUT /display`, `PATCH /settings`, `PATCH /albums`), or `async_request_refresh` where the answer is not a full state; a settings or album change also forces the full tier on the next tick. A requested tier stays requested until a tick has read it without an error.
 
 *Alternative:* one coordinator per tier. Rejected: entities would depend on several coordinators, and availability would need to be combined by hand. *Alternative:* reading everything every 15 seconds. Rejected: settings, albums, the photo totals and sources together are about eight requests, which the Frameo would serve every 15 seconds for no gain.
 
 ### 5. Image entity reads through the token
 
-`CurrentPhoto(ImageEntity)` implements `async_image()` and fetches `GET /photos/{id}/image?size=display` with the token, so the image is the part of the photo the frame shows. `image_last_updated` changes when the photo ID or its `urls.display` changes (the display URL carries the image version and the key of the shown part), so Home Assistant's frontend reloads exactly then. The last bytes are cached per URL. The signed URL is not given to Home Assistant as `image_url`, because it expires after two hours and the frame is not reachable from outside the LAN.
+`CurrentPhoto(ImageEntity)` implements `async_image()` and fetches `GET /photos/{id}/image?size=display` with the token, so the image is the part of the photo the frame shows. `image_last_updated` changes when the photo ID or its `urls.display` without the signature `t` changes (the display URL carries the image version and the key of the shown part; the signature changes every full hour), so Home Assistant's frontend reloads exactly then. The last bytes are cached per URL without the signature. The signed URL is not given to Home Assistant as `image_url`, because it expires after two hours and the frame is not reachable from outside the LAN.
 
 ### 6. Entities
 
@@ -73,7 +75,7 @@ All entities derive from `OpenframeEntity(CoordinatorEntity)` with `has_entity_n
 | `select` | `order`, `transition`, `fill_mode`, `orientation` |
 | `update` | `app` |
 
-Settings entities have `EntityCategory.CONFIG`; `check_update`, `transition_fallback` and the photo totals have `EntityCategory.DIAGNOSTIC`. Album switches use the album path in the unique ID and as translation placeholder; a path with `/` gets `entity_registry_enabled_default = False`. Dynamic entities are added by a listener on the coordinator that compares known keys with the current albums and sources; an entity whose album or source disappears reports itself unavailable and is not removed, so automations that reference it do not break silently. The update entity supports `INSTALL` and `RELEASE_NOTES` while `installAllowed` is true and `phase` is not `unsupported`; `in_progress` is true for `downloading` and `installing`; `release_notes()` returns `latest.notes` as plain text.
+Settings entities have `EntityCategory.CONFIG`; `check_update`, `transition_fallback` and the photo totals have `EntityCategory.DIAGNOSTIC`. Album switches use the album path in the unique ID and as translation placeholder; a path with `/` gets `entity_registry_enabled_default = False`. Dynamic entities are added by a listener on the coordinator that compares known keys with the current albums and sources; an entity whose album or source disappears reports itself unavailable and is not removed, so automations that reference it do not break silently. The update entity supports `RELEASE_NOTES` while a release is known and `INSTALL` while `installAllowed` is true and `phase` is `ready` (the frame refuses any other phase with `update_not_ready`); `in_progress` is true for `downloading` and `installing`; `release_notes()` returns `latest.notes` as plain text.
 
 ### 7. Contract tests
 

@@ -1,0 +1,263 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add an openframe frame",
+        "description": "Enter the address of the frame. Its web UI shows it on the start screen, for example 192.168.100.215 and port 8080.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP address or host name of the frame.",
+          "port": "Port of the frame's web UI, 8080 unless changed."
+        }
+      },
+      "pair": {
+        "title": "Pair with {name}",
+        "description": "The frame {name} now shows a six-digit pairing code. Type it here.",
+        "data": {
+          "code": "Pairing code"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Pair {name} again",
+        "description": "The frame {name} no longer accepts Home Assistant's pairing. When you continue, the frame shows a new pairing code."
+      },
+      "reconfigure": {
+        "title": "New address of the frame",
+        "description": "Enter the frame's new address. The pairing is kept.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP address or host name of the frame.",
+          "port": "Port of the frame's web UI, 8080 unless changed."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the frame. Check the address and that the frame is switched on.",
+      "not_openframe": "No openframe frame answers at this address.",
+      "invalid_code": "Wrong code. Type the six digits the frame shows.",
+      "expired_code": "The code has expired. The frame now shows a new code.",
+      "locked": "Pairing is locked after too many wrong codes. Wait a minute and try again.",
+      "wrong_frame": "Another frame answers at this address."
+    },
+    "abort": {
+      "already_configured": "This frame is already set up.",
+      "cannot_connect": "The frame stopped answering during the pairing. Try again.",
+      "outdated_frame": "The frame's openframe app is too old. Update it to openframe {version} or later and add the frame again.",
+      "wrong_frame": "Another frame answers at the stored address. Use Reconfigure to enter the frame's new address.",
+      "unexpected_answer": "The frame answered the pairing check unexpectedly: {message}"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "safe_mode": {
+        "name": "Safe mode"
+      },
+      "transition_fallback": {
+        "name": "Transition fallback"
+      },
+      "sync_problem": {
+        "name": "Sync problem {source}",
+        "state_attributes": {
+          "error": {
+            "name": "Error"
+          }
+        }
+      }
+    },
+    "button": {
+      "next_photo": {
+        "name": "Next photo"
+      },
+      "previous_photo": {
+        "name": "Previous photo"
+      },
+      "check_update": {
+        "name": "Check for update"
+      },
+      "leave_safe_mode": {
+        "name": "Leave safe mode"
+      },
+      "sync": {
+        "name": "Sync {source}"
+      }
+    },
+    "image": {
+      "current_photo": {
+        "name": "Photo on screen"
+      }
+    },
+    "number": {
+      "interval": {
+        "name": "Interval"
+      },
+      "transition_duration": {
+        "name": "Transition duration"
+      }
+    },
+    "select": {
+      "order": {
+        "name": "Order",
+        "state": {
+          "shuffle": "Shuffle",
+          "chronological": "Chronological"
+        }
+      },
+      "transition": {
+        "name": "Transition",
+        "state": {
+          "fade": "Fade",
+          "slide": "Slide",
+          "none": "None"
+        }
+      },
+      "fill_mode": {
+        "name": "Fill mode",
+        "state": {
+          "auto": "Automatic",
+          "fill": "Fill",
+          "fit": "Fit"
+        }
+      },
+      "orientation": {
+        "name": "Orientation",
+        "state": {
+          "landscape": "Landscape",
+          "portrait": "Portrait"
+        }
+      }
+    },
+    "sensor": {
+      "current_photo": {
+        "name": "Photo on screen",
+        "state_attributes": {
+          "album": {
+            "name": "Album"
+          },
+          "taken_at": {
+            "name": "Taken at"
+          },
+          "place": {
+            "name": "Place"
+          },
+          "photo_id": {
+            "name": "Photo ID"
+          }
+        }
+      },
+      "photos": {
+        "name": "Photos"
+      },
+      "photos_visible": {
+        "name": "Visible photos"
+      },
+      "photos_hidden": {
+        "name": "Hidden photos"
+      },
+      "albums": {
+        "name": "Albums"
+      },
+      "last_sync": {
+        "name": "Last sync {source}",
+        "state_attributes": {
+          "added": {
+            "name": "Added"
+          },
+          "updated": {
+            "name": "Updated"
+          },
+          "removed": {
+            "name": "Removed"
+          }
+        }
+      }
+    },
+    "switch": {
+      "display": {
+        "name": "Display",
+        "state_attributes": {
+          "cause": {
+            "name": "Cause",
+            "state": {
+              "schedule": "Schedule",
+              "manual": "Manual",
+              "wake": "Woken",
+              "none": "None"
+            }
+          },
+          "next_change": {
+            "name": "Next change"
+          }
+        }
+      },
+      "slideshow": {
+        "name": "Slideshow"
+      },
+      "clock": {
+        "name": "Clock"
+      },
+      "display_schedule": {
+        "name": "Display schedule"
+      },
+      "auto_update_check": {
+        "name": "Automatic update check"
+      },
+      "album": {
+        "name": "Album {album}",
+        "state_attributes": {
+          "photos": {
+            "name": "Photos"
+          }
+        }
+      }
+    },
+    "update": {
+      "app": {
+        "name": "App"
+      }
+    }
+  },
+  "exceptions": {
+    "no_answer": {
+      "message": "The frame does not answer."
+    },
+    "unauthorized": {
+      "message": "The frame no longer accepts Home Assistant's pairing. Pair the frame again."
+    },
+    "display_off": {
+      "message": "The display is off."
+    },
+    "display_unavailable": {
+      "message": "The frame cannot switch its display: openframe is not a device administrator."
+    },
+    "safe_mode": {
+      "message": "The frame is in safe mode."
+    },
+    "not_in_safe_mode": {
+      "message": "The frame is not in safe mode."
+    },
+    "update_not_ready": {
+      "message": "No update is downloaded and ready to install."
+    },
+    "install_not_allowed": {
+      "message": "Android does not allow openframe to install apps on the frame."
+    },
+    "install_in_progress": {
+      "message": "The installation dialog is already open on the frame."
+    },
+    "install_cooldown": {
+      "message": "An installation was just cancelled. Try again in a few minutes."
+    },
+    "source_no_folder": {
+      "message": "Choose a folder for this source in the frame's web UI first."
+    },
+    "refused": {
+      "message": "The frame refused the command: {message}"
+    }
+  }
+}

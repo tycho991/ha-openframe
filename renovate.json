@@ -1,12 +1,63 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    "helpers:pinGitHubActionDigestsToSemver"
+  ],
+  "description": "Python dependencies through uv (pep621 manager), GitHub Actions, the tools in .mise.toml, and openframe's API contract. No automerge.",
+  "enabledManagers": ["pep621", "github-actions", "mise", "custom.regex"],
   "minimumReleaseAge": "7 days",
+  "timezone": "Europe/Berlin",
+  "schedule": ["* 0-5 * * 1"],
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  },
   "packageRules": [
     {
-      "matchDepNames": ["node"],
+      "description": "All minor and patch updates of tools and tests in one pull request",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
+      "groupName": "tools"
+    },
+    {
+      "description": "The Home Assistant test harness on its own: its version decides the Home Assistant release the tests run against",
+      "matchPackageNames": ["pytest-homeassistant-custom-component"],
+      "groupName": "home assistant test harness"
+    },
+    {
+      "description": "A new openframe release changes the contract the integration is tested against; renovate-artifacts downloads it, and a failing test keeps it from being merged",
+      "matchDepNames": ["tycho991/openframe"],
+      "groupName": "openframe contract",
+      "semanticCommitType": "test",
+      "minimumReleaseAge": "0 days",
+      "schedule": ["at any time"]
+    },
+    {
+      "description": "Every major only after approval on the dependency dashboard",
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The openframe release whose API contract the tests use",
+      "managerFilePatterns": ["/^tests/contract/OPENFRAME_VERSION$/"],
+      "matchStrings": ["^(?<currentValue>v\\d+\\.\\d+\\.\\d+)\\s*$"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "tycho991/openframe"
+    },
+    {
+      "customType": "regex",
+      "description": "The mise version that jdx/mise-action installs in the workflows",
+      "managerFilePatterns": ["/^\\.github/workflows/(ci|openspec-drift|renovate-artifacts)\\.yml$/"],
+      "matchStrings": ["MISE_VERSION: \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "jdx/mise",
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ]
 }

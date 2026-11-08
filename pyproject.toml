@@ -1,0 +1,34 @@
+[project]
+name = "ha-openframe"
+version = "0.0.0"
+description = "Home Assistant integration for openframe picture frames"
+requires-python = ">=3.14.2"
+# No runtime requirements: the integration uses Home Assistant's aiohttp session
+dependencies = []
+
+[dependency-groups]
+# Home Assistant 2026.10.2 test harness; openapi-core validates the fake frame against the contract
+dev = [
+    "pytest-homeassistant-custom-component==0.13.373",
+    "openapi-core==0.23.1",
+    "ruff==0.17.4",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ASYNC"]
+# The client passes an HTTP timeout to aiohttp, not a cancel scope
+ignore = ["ASYNC109"]
+# Spec references in test docstrings use `capability › Requirement › Scenario`
+allowed-confusables = ["›"]

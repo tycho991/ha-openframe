@@ -1,0 +1,1620 @@
+openapi: 3.1.0
+info:
+  title: openframe API
+  version: "1"
+  summary: Management of an openframe picture frame on the LAN.
+  license:
+    name: MIT
+    identifier: MIT
+  description: |
+    Versioned JSON API of the frame under `/api/v1`. Source of truth for the
+    web UI's types and for the contract tests in `:core`.
+
+    Access: a client pairs with the code that the frame shows, with the secret
+    from the frame's QR code or with an invitation from a paired device, and
+    receives a token (`Authorization: Bearer`). Image URLs carry a server-issued signature
+    `t` instead, which is valid for one photo only and for at most two hours.
+
+    Mutating requests from foreign origins are rejected with 403.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: info
+    description: Identity of the frame, without pairing.
+  - name: pairing
+    description: Pairing by code, QR code or invitation, and paired devices.
+  - name: settings
+    description: Settings of the frame.
+  - name: photos
+    description: Photos, upload and image sizes.
+  - name: albums
+    description: Albums from folders.
+  - name: state
+    description: Versions for detecting changes.
+  - name: diagnostics
+    description: Log of the frame.
+  - name: health
+    description: Safe mode after repeated crashes.
+  - name: sources
+    description: Remote sources of photos (a Nextcloud account or share link), read only.
+  - name: display
+    description: State of the display and the manual switch.
+  - name: slideshow
+    description: The photo on screen, and next, previous, pause and resume from afar.
+  - name: update
+    description: Updates of the app from the releases on GitHub.
+
+paths:
+  /info:
+    get:
+      tags: [info]
+      operationId: getInfo
+      summary: Identity and device data of the frame, retrievable without pairing.
+      security: []
+      responses:
+        "200":
+          description: The frame's info.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Info" }
+
+  /pairing:
+    post:
+      tags: [pairing]
+      operationId: pair
+      summary: Pair with the code shown on the frame or with a secret.
+      description: |
+        Send exactly one of `code` and `secret`. The secret comes from the
+        fragment `#pair=` of the frame's QR code or of an invitation. Wrong
+        secrets do not count as failed attempts, and the lockout after wrong
+        codes does not apply to secrets.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PairingRequest" }
+      responses:
+        "201":
+          description: Paired. The token is delivered only this once.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PairingResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Code or secret wrong (`invalid_code`) or expired (`expired_code`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/Locked" }
+
+  /pairing/code:
+    post:
+      tags: [pairing]
+      operationId: showPairingCode
+      summary: Ask the frame to show a valid code and QR code for 5 minutes.
+      description: |
+        The response never contains the code or the secret. While pairing by
+        code is locked after failed attempts, the frame shows the QR code alone.
+      security: []
+      responses:
+        "204":
+          description: The frame shows a valid code and QR code, or the QR code alone during the lockout.
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /pairing/invites:
+    post:
+      tags: [pairing]
+      operationId: createInvite
+      summary: Create an invitation that pairs one further device.
+      description: |
+        Valid for 5 minutes and only once. Each paired device has at most one
+        open invitation; a new one replaces it. The invitation ends when the
+        inviting device's pairing is revoked.
+      responses:
+        "201":
+          description: Invitation created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invite" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /clients:
+    get:
+      tags: [pairing]
+      operationId: listClients
+      summary: Paired devices.
+      responses:
+        "200":
+          description: List of paired devices, the requesting one is marked.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /clients/{clientId}:
+    parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [pairing]
+      operationId: updateClient
+      summary: Rename a paired device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientUpdate" }
+      responses:
+        "200":
+          description: Device renamed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Client" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [pairing]
+      operationId: deleteClient
+      summary: Revoke a pairing. The token becomes invalid immediately.
+      responses:
+        "204": { description: Pairing revoked. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /settings:
+    get:
+      tags: [settings]
+      operationId: getSettings
+      summary: Read all settings.
+      responses:
+        "200":
+          description: All settings with their current values.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      tags: [settings]
+      operationId: patchSettings
+      summary: Change individual settings.
+      description: |
+        Settings that are not mentioned remain unchanged. The change is applied
+        completely or not at all. Unknown fields, including the "local only"
+        mode, lead to 400.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SettingsPatch" }
+      responses:
+        "200":
+          description: The settings after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /photos:
+    get:
+      tags: [photos]
+      operationId: listPhotos
+      summary: Photos page by page, filtered and sorted.
+      parameters:
+        - name: album
+          in: query
+          description: Only photos of this album (a folder path) and, unless `subalbums` is `false`, of its sub-albums.
+          schema: { type: string }
+        - name: subalbums
+          in: query
+          description: With `false`, `album` matches only the photos that lie directly in the album.
+          schema: { type: boolean, default: true }
+        - name: visible
+          in: query
+          description: Only visible (`true`) or only hidden (`false`) photos.
+          schema: { type: boolean }
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [date_desc, date_asc, name_asc, name_desc]
+            default: date_desc
+        - name: cursor
+          in: query
+          description: Value of `nextCursor` from the previous page.
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
+      responses:
+        "200":
+          description: One page of the photo list.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PhotoPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [photos]
+      operationId: uploadPhotos
+      summary: Upload one or more files, optionally into an album.
+      description: |
+        Streamed to disk. If the request contains a file without a supported
+        format, nothing is stored (415, `unsupported_format`); the same holds for an
+        image over 100 megapixels or with an aspect ratio over 32:1 (415,
+        `image_too_large`). If less than 100 MB would remain free after the upload,
+        nothing is stored (507). While the photo folder is unavailable, for example
+        because the storage is not mounted, nothing is stored (503,
+        `storage_unavailable`); the same holds while the decoder cannot be started
+        (503, `decoder_unavailable`) and in safe mode (503, `safe_mode`). A file that crashes the decoder is refused as
+        an unsupported format (415). An album path longer than
+        255 characters after sanitizing is refused with 400 and the error code
+        `invalid_album`, naming the field `album`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                album:
+                  type: string
+                  description: |
+                    Album path below the photo folder, levels separated by `/` (`family/2025`).
+                    Each level is sanitized; empty levels, `.` and `..` are dropped. At most
+                    255 characters after sanitizing. Missing folders are created.
+                file:
+                  type: array
+                  items: { type: string, format: binary }
+              required: [file]
+      responses:
+        "201":
+          description: Stored and in the index.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "415": { $ref: "#/components/responses/UnsupportedMedia" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+        "507": { $ref: "#/components/responses/InsufficientStorage" }
+
+  /photos:batch:
+    post:
+      tags: [photos]
+      operationId: batchPhotos
+      summary: Hide, unhide or delete several photos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BatchRequest" }
+      responses:
+        "200":
+          description: |
+            Done. Unknown IDs are listed in `missing`, IDs the frame could not process
+            (for example a file that could not be deleted) in `failed`. The other IDs are processed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BatchResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /photos/{photoId}:
+    parameters:
+      - $ref: "#/components/parameters/PhotoId"
+    patch:
+      tags: [photos]
+      operationId: patchPhoto
+      summary: Hide or unhide one photo, set or remove its section or its comment.
+      description: >-
+        Allowed for photos of every source; nothing is written to a remote source. An invalid value rejects the whole
+        patch with 400 and names its field (`comment`, `crop.x`, `crop.y`, `crop.zoom`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PhotoPatch" }
+      responses:
+        "200":
+          description: The photo after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Photo" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [photos]
+      operationId: deletePhoto
+      summary: Remove file, index entry and rendered sizes.
+      description: "A photo of a read-only source (any source but `local`) is refused with 409 and the error code `read_only_source`."
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /photos/{photoId}/image:
+    parameters:
+      - $ref: "#/components/parameters/PhotoId"
+    get:
+      tags: [photos]
+      operationId: getPhotoImage
+      summary: Rendered image size as JPEG.
+      description: |
+        Retrievable with a token or with the signature `t` from the photo list. If `v`
+        matches the current image version, the response is `immutable`.
+      security:
+        - bearerAuth: []
+        - imageSignature: []
+      parameters:
+        - name: size
+          in: query
+          required: true
+          schema: { type: string, enum: [thumb, display, full] }
+          description: "`display`: the part of the photo the frame shows (`presentation`); `full`: the uncropped photo, longest edge at most 2048 px."
+        - name: v
+          in: query
+          description: Image version, for caches only.
+          schema: { type: integer }
+        - name: p
+          in: query
+          description: Key of the part the display size shows, for caches only. Part of the display URL in the photo list.
+          schema: { type: string }
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+      responses:
+        "200":
+          description: The image.
+          headers:
+            ETag: { schema: { type: string } }
+            Cache-Control: { schema: { type: string } }
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        "304": { description: Not modified. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503":
+          description: "The image could not be rendered (`render_failed`), also for a quarantined photo without a rendering attempt, or the frame is in safe mode (`safe_mode`)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /skipped-files:
+    get:
+      tags: [photos]
+      operationId: listSkippedFiles
+      summary: Files with an image extension that could not be accepted.
+      responses:
+        "200":
+          description: List with path and reason.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkippedFileList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /albums:
+    get:
+      tags: [albums]
+      operationId: listAlbums
+      summary: All albums.
+      responses:
+        "200":
+          description: All albums with count and cover image.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlbumList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      tags: [albums]
+      operationId: patchAlbum
+      summary: Hide or unhide an album with its whole branch.
+      description: |
+        Removes the settings of all sub-albums of `name`, so the whole branch
+        follows it. An album set to the state of its parent keeps no setting of
+        its own. Answers with the whole list, because sub-albums change too.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AlbumPatch" }
+      responses:
+        "200":
+          description: All albums after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlbumList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /state:
+    get:
+      tags: [state]
+      operationId: getState
+      summary: Library and settings version for detecting changes.
+      responses:
+        "200":
+          description: Current versions.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/State" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /display:
+    get:
+      tags: [display]
+      operationId: getDisplay
+      summary: Whether the display is on, why, and when it changes next by itself.
+      responses:
+        "200":
+          description: The display state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DisplayState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [display]
+      operationId: setDisplay
+      summary: Switch the display on or off now.
+      description: >-
+        The choice holds until the schedule's next switching time. Without an active schedule, off holds until a
+        client switches the display on or someone wakes the frame. It does not survive a restart of the app. Refused
+        with 409 and `display_unavailable` while openframe is not a device administrator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DisplaySwitch" }
+      responses:
+        "200":
+          description: The display state after switching.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DisplayState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /slideshow:
+    get:
+      tags: [slideshow]
+      operationId: getSlideshow
+      summary: The photo on screen and whether the slideshow is paused or rests.
+      description: >-
+        Cheap enough to poll every few seconds. Answers 503 and `safe_mode` while the frame is in safe mode, because
+        no slideshow runs then.
+      responses:
+        "200":
+          description: The slideshow state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SlideshowState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+    post:
+      tags: [slideshow]
+      operationId: controlSlideshow
+      summary: Next or previous photo, pause or resume, like the gestures and the hint on the frame.
+      description: >-
+        `next` and `previous` start the interval over. The answer shows the state after the command has taken effect,
+        or, if that takes longer than two seconds, the state at that moment. While the display is off, `next` and
+        `previous` are refused with 409 and `display_off`; `pause` and `resume` apply. Answers 503 and `safe_mode` at
+        once while the frame is in safe mode.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SlideshowCommand" }
+      responses:
+        "200":
+          description: The slideshow state after the command.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SlideshowState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /sources:
+    get:
+      tags: [sources]
+      operationId: listSources
+      summary: All remote sources with their settings and status.
+      description: "No password, app password or share token is part of it."
+      responses:
+        "200":
+          description: The sources, in the order they were added.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [sources]
+      operationId: addShare
+      summary: Add the link of a Nextcloud folder share as a source.
+      description: >-
+        The frame reads the share once before storing it; on any failure nothing is stored. A link that is no share
+        is a field error at `link` (`validation_failed`), a share that does not exist `share_not_found`, the share
+        of a single file `share_not_a_folder` and a "file drop" share that only accepts uploads `share_not_readable`, all
+        at `link`; a protected share without a password
+        `share_password_required` and with a wrong one `share_password_wrong`, both at `password`. An account is
+        added with the login flow instead (`POST /sources/login`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ShareRequest" }
+      responses:
+        "201":
+          description: The share is a source; its first sync follows soon.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Source" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+
+  /sources/login:
+    post:
+      tags: [sources]
+      operationId: startSourceLogin
+      summary: Start Nextcloud's Login Flow v2 for an account.
+      description: >-
+        The frame asks the server for a login page; the client opens `loginUrl` in a new browser tab and polls
+        `GET /sources/login/{flowId}`. There is at most one flow, a new one replaces the old. Refused with
+        `too_many_sources` when eight sources exist and none of them is an account that the login could renew.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SourceLoginRequest" }
+      responses:
+        "201":
+          description: The flow is started.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceLogin" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+
+  /sources/login/{flowId}:
+    parameters:
+      - name: flowId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [sources]
+      operationId: pollSourceLogin
+      summary: Ask whether the user has approved the login.
+      description: >-
+        Makes the frame ask the server once. On `done` the account is a source: a new one, or, for a server and user
+        that already are a source, that source with the new credentials. An unknown or old flow is `expired`.
+      responses:
+        "200":
+          description: The state of the flow.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceLoginState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /sources/{sourceId}:
+    parameters:
+      - $ref: "#/components/parameters/SourceId"
+    get:
+      tags: [sources]
+      operationId: getSource
+      summary: Settings and status of one source.
+      responses:
+        "200":
+          description: The source.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Source" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [sources]
+      operationId: patchSource
+      summary: Change settings of one source.
+      description: "Partial change, validated completely or not at all. A change makes the source sync again soon."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SourceSettingsPatch" }
+      responses:
+        "200":
+          description: The source after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Source" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [sources]
+      operationId: removeSource
+      summary: Remove one source.
+      description: >-
+        Revokes the app password of an account on the server (if the server answers), deletes the stored
+        credentials, stops the sync and removes the photos of the source and their downloaded originals. Local photos
+        and the other sources are not touched.
+      responses:
+        "204": { description: Removed. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /sources/{sourceId}/sync:
+    parameters:
+      - $ref: "#/components/parameters/SourceId"
+    post:
+      tags: [sources]
+      operationId: syncSource
+      summary: Start a sync of one source now.
+      description: >-
+        Answers at once. If a sync of this source is already running, nothing is started and `started` is false. An
+        account without a folder is refused with `source_no_folder`, and in safe mode the frame answers 503 with
+        `safe_mode`.
+      responses:
+        "202":
+          description: A sync was started or is already running.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /safe-mode/exit:
+    post:
+      tags: [health]
+      operationId: exitSafeMode
+      summary: Restart the frame in normal mode.
+      description: >-
+        Answers first and restarts the app about a second later; the next start runs in normal mode, and an early end
+        in that run leads straight back into safe mode. A frame not in safe mode answers 409 with `not_in_safe_mode`.
+      responses:
+        "202":
+          description: The frame restarts in normal mode.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: false }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /update:
+    get:
+      tags: [update]
+      operationId: getUpdate
+      summary: Installed and latest version, and the state of check, download and installation.
+      responses:
+        "200":
+          description: The update state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpdateState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /update/check:
+    post:
+      tags: [update]
+      operationId: checkUpdate
+      summary: Check for an update now.
+      description: >-
+        Starts a check, also while automatic checks are off. While a check or download runs, within 60 seconds of the
+        last check, or before a rate limit of GitHub resets, no check starts; the answer is the current state then.
+      responses:
+        "202":
+          description: The update state after the request.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpdateState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /update/install:
+    post:
+      tags: [update]
+      operationId: installUpdate
+      summary: Open the installation dialog for the ready update on the frame.
+      description: >-
+        The update installs only after someone confirms Android's dialog on the frame. An accepted request wakes the
+        display and keeps it on while the dialog is open, at most 10 minutes.
+      responses:
+        "202":
+          description: The dialog is being opened; `phase` is `installing`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpdateState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: The installation was refused; the code says why.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InstallRefusal" }
+
+  /logs:
+    get:
+      tags: [diagnostics]
+      operationId: getLogs
+      summary: Latest entries of the log.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 5000, default: 500 }
+      responses:
+        "200":
+          description: The latest entries of the log, oldest first.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    imageSignature:
+      type: apiKey
+      in: query
+      name: t
+
+  parameters:
+    PhotoId:
+      name: photoId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[a-z][a-z0-9]*-[0-9a-f]{40}$" }
+    SourceId:
+      name: sourceId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    BadRequest:
+      description: Invalid request. For validation errors with an entry per field.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: No token or no valid token, or no valid signature.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Mutating request from a foreign origin.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: "The request does not fit the state of the frame, for example deleting a photo of a read-only source (`read_only_source`), syncing an account that has no folder chosen (`source_no_folder`), a ninth source (`too_many_sources`), a share that already is a source (`source_exists`), switching the display while openframe is not a device administrator (`display_unavailable`), stepping through the slideshow while the display is off (`display_off`) or leaving safe mode while not in it (`not_in_safe_mode`)."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TooLarge:
+      description: Request too large.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    UnsupportedMedia:
+      description: "Unsupported format (`unsupported_format`) or an image over the size limits (`image_too_large`)."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Locked:
+      description: Too many failed attempts. Pairing is temporarily locked.
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadGateway:
+      description: "The frame could not talk to the server of a source (`nextcloud_unreachable`: not reachable, certificate not trusted, not a Nextcloud server)."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unavailable:
+      description: "The frame cannot do this right now: the photo folder is unavailable (`storage_unavailable`), the decoder cannot be started (`decoder_unavailable`), or the frame is in safe mode (`safe_mode`)."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    InsufficientStorage:
+      description: Not enough free storage.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code, e.g. `validation_failed`, `invalid_code`, `unauthorized`.
+            message: { type: string }
+            fields:
+              type: object
+              description: Errors per field, the key is the field path (e.g. `clock.sizePercent`).
+              additionalProperties: { type: string }
+
+    SourceKind:
+      type: string
+      enum: [nextcloud-account, nextcloud-share]
+      description: "`nextcloud-account`: an account connected with the login flow; `nextcloud-share`: the link of a folder share."
+
+    SourceSettings:
+      type: object
+      additionalProperties: false
+      required: [name, enabled, folder, includeSubfolders, removeVanished, intervalMinutes, originalsBudgetMb]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 64, description: "What the source is called in the list." }
+        enabled: { type: boolean }
+        folder:
+          type: string
+          description: >-
+            Folder as `/a/b`, `/` for the top: below the account's files or below the shared folder. Empty for an
+            account until one is chosen: then nothing syncs.
+        includeSubfolders: { type: boolean }
+        removeVanished: { type: boolean, description: "Remove photos that are no longer in the folder." }
+        intervalMinutes: { type: integer, minimum: 5, maximum: 1440 }
+        originalsBudgetMb: { type: integer, minimum: 100, maximum: 50000, description: "Budget for the downloaded originals of this source." }
+
+    SourceSettingsPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        enabled: { type: boolean }
+        folder: { type: string }
+        includeSubfolders: { type: boolean }
+        removeVanished: { type: boolean }
+        intervalMinutes: { type: integer }
+        originalsBudgetMb: { type: integer }
+
+    SourceStatus:
+      type: object
+      additionalProperties: false
+      required: [syncing, waiting, lastSyncAt, ok, error, added, updated, removed]
+      properties:
+        syncing: { type: boolean, description: "A sync of this source runs, or is asked for and about to start." }
+        waiting:
+          type: boolean
+          description: "A sync of this source is due but waits until the sync of another source ends: one sync runs at a time."
+        lastSyncAt: { type: [string, "null"], format: date-time }
+        ok: { type: [boolean, "null"], description: "Result of the last sync, `null` before the first." }
+        error: { type: [string, "null"], description: "Readable error of the last sync. Never contains a credential or a share token." }
+        added: { type: integer }
+        updated: { type: integer }
+        removed: { type: integer }
+
+    Source:
+      type: object
+      additionalProperties: false
+      required: [id, kind, serverUrl, user, settings, status]
+      properties:
+        id: { type: string, pattern: "^[a-z][a-z0-9]{0,15}$", description: "The source part of the IDs of its photos." }
+        kind: { $ref: "#/components/schemas/SourceKind" }
+        serverUrl: { type: string, description: "Address of the server, without the share token." }
+        user: { type: [string, "null"], description: "Login name of an account, `null` for a share." }
+        settings: { $ref: "#/components/schemas/SourceSettings" }
+        status: { $ref: "#/components/schemas/SourceStatus" }
+
+    SourceList:
+      type: object
+      additionalProperties: false
+      required: [sources]
+      properties:
+        sources:
+          type: array
+          maxItems: 8
+          items: { $ref: "#/components/schemas/Source" }
+
+    ShareRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, link]
+      properties:
+        kind: { type: string, const: nextcloud-share }
+        link:
+          type: string
+          description: "The link of the share, `http(s)://host[/path][/index.php]/s/<token>`."
+        password: { type: string, description: "The password of a protected share. Only given here, never returned." }
+        name: { type: string, description: "Name in the list; if missing, the name of the shared folder (the host of the server if it names none)." }
+
+    SourceLoginRequest:
+      type: object
+      additionalProperties: false
+      required: [serverUrl]
+      properties:
+        serverUrl: { type: string, description: "Address of the server, `http://` or `https://`." }
+
+    SourceLogin:
+      type: object
+      additionalProperties: false
+      required: [flowId, loginUrl, expiresAt]
+      properties:
+        flowId: { type: string }
+        loginUrl: { type: string, description: "The page where the user approves, to open in a new browser tab." }
+        expiresAt: { type: string, format: date-time }
+
+    SourceLoginState:
+      type: object
+      additionalProperties: false
+      required: [state, user, sourceId, error]
+      properties:
+        state: { type: string, enum: [pending, done, failed, expired] }
+        user: { type: [string, "null"], description: "Set when `done`." }
+        sourceId: { type: [string, "null"], description: "The source of the account, set when `done`." }
+        error: { type: [string, "null"], description: "Set when `failed`." }
+
+    SyncRequest:
+      type: object
+      additionalProperties: false
+      required: [started]
+      properties:
+        started: { type: boolean, description: "False if a sync of this source was already running." }
+
+    Info:
+      type: object
+      additionalProperties: false
+      required: [id, name, appVersion, androidVersion, screen, apiVersion]
+      properties:
+        id: { type: string, description: "Random, durable ID of the frame." }
+        name: { type: string }
+        appVersion: { type: string }
+        androidVersion: { type: string }
+        screen: { $ref: "#/components/schemas/Size" }
+        apiVersion: { type: integer, const: 1 }
+
+    Size:
+      type: object
+      additionalProperties: false
+      required: [width, height]
+      properties:
+        width: { type: integer, minimum: 1 }
+        height: { type: integer, minimum: 1 }
+
+    PairingRequest:
+      type: object
+      additionalProperties: false
+      description: Exactly one of `code` and `secret`, otherwise 400.
+      properties:
+        code: { type: string, pattern: "^[0-9]{6}$" }
+        secret:
+          type: string
+          pattern: "^[A-Za-z0-9_-]{22}$"
+          description: 16 bytes in Base64url without padding, from `#pair=` of a pairing link.
+        deviceName:
+          type: string
+          maxLength: 64
+          description: |
+            Control characters become a space, then leading and trailing whitespace is removed and the
+            name is cut to 64 characters. If the name is missing or empty after this, it is derived from
+            the user agent.
+
+    PairingResponse:
+      type: object
+      additionalProperties: false
+      required: [token, client]
+      properties:
+        token: { type: string }
+        client: { $ref: "#/components/schemas/Client" }
+
+    Client:
+      type: object
+      additionalProperties: false
+      required: [id, name, pairedAt, lastSeenAt, current]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        pairedAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        current: { type: boolean, description: "The requesting device." }
+
+    ClientUpdate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Control characters become a space, then leading and trailing whitespace is removed; the length applies after this.
+
+    Invite:
+      type: object
+      additionalProperties: false
+      required: [url, expiresAt, qr]
+      properties:
+        url:
+          type: string
+          description: Pairing link with the secret in the fragment `#pair=`, on the address the inviting device used.
+        expiresAt: { type: string, format: date-time }
+        qr: { $ref: "#/components/schemas/QrMatrix" }
+
+    QrMatrix:
+      type: array
+      description: |
+        Rows of a QR code that encodes the `url`, without quiet zone: `1` is a
+        dark module, `0` a light one. Draw it dark on light with a quiet zone
+        of 4 modules.
+      minItems: 21
+      items: { type: string, pattern: "^[01]+$" }
+
+    ClientList:
+      type: object
+      additionalProperties: false
+      required: [clients]
+      properties:
+        clients:
+          type: array
+          items: { $ref: "#/components/schemas/Client" }
+
+    Order: { type: string, enum: [shuffle, chronological] }
+    Transition: { type: string, enum: [fade, slide, none] }
+    FillMode:
+      type: string
+      enum: [auto, fill, fit]
+      description: "`auto` crops at most a quarter in the direction in which the photo does not fit and shows the rest with black borders."
+    Orientation: { type: string, enum: [landscape, portrait] }
+    Corner:
+      type: string
+      enum: [top-left, top-right, bottom-left, bottom-right]
+      description: "A corner of the screen, for the clock and for the caption."
+    ClockFormat: { type: string, enum: ["24h", "12h"] }
+    FrameLanguage: { type: string, enum: [auto, de, en] }
+
+    Clock:
+      type: object
+      additionalProperties: false
+      required: [enabled, position, sizePercent, format]
+      properties:
+        enabled: { type: boolean }
+        position: { $ref: "#/components/schemas/Corner" }
+        sizePercent: { type: integer, minimum: 50, maximum: 300 }
+        format: { $ref: "#/components/schemas/ClockFormat" }
+
+    Caption:
+      type: object
+      additionalProperties: false
+      required: [albumTitle, place, position]
+      description: >-
+        The caption over the photo. It always shows the photo's comment; it can put the album title (the last level
+        of the album path) in front of it and the place name in a line below. It may share its corner with the clock.
+      properties:
+        albumTitle: { type: boolean, description: "Put the album title in front of the comment." }
+        place: { type: boolean, description: "Show the place name in a line below." }
+        position: { $ref: "#/components/schemas/Corner" }
+
+    DisplayTime:
+      type: string
+      pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+      description: "Local time of the device as `HH:MM`, 00:00 to 23:59."
+
+    DisplayWindow:
+      type: object
+      additionalProperties: false
+      required: ["on", "off"]
+      description: >-
+        The display is on from `on` to `off`. An `off` before `on` ends the period on the next day; equal times keep
+        the display on for the whole day.
+      properties:
+        "on": { $ref: "#/components/schemas/DisplayTime" }
+        "off": { $ref: "#/components/schemas/DisplayTime" }
+
+    DisplaySchedule:
+      type: object
+      additionalProperties: false
+      required: [enabled, weekdays, weekend, wakeMinutes]
+      properties:
+        enabled:
+          type: boolean
+          description: "Can be switched on only while openframe is a device administrator (`GET /display`, `available`)."
+        weekdays: { $ref: "#/components/schemas/DisplayWindow", description: "Monday to Friday." }
+        weekend: { $ref: "#/components/schemas/DisplayWindow", description: "Saturday and Sunday." }
+        wakeMinutes:
+          type: integer
+          minimum: 1
+          maximum: 120
+          description: "After waking during an off period, the display goes off again this many minutes after the last touch."
+
+    DisplayState:
+      type: object
+      additionalProperties: false
+      required: [available, "on", cause, nextChange]
+      properties:
+        available: { type: boolean, description: "openframe is a device administrator and can switch the display." }
+        "on": { type: boolean, description: "The display is on, as the system reports it." }
+        cause:
+          type: string
+          enum: [schedule, manual, wake, none]
+          description: >-
+            Why the display is in this state: `schedule`, the manual switch (`manual`), woken during an off period
+            (`wake`), or `none` when the frame decides nothing (no active schedule or not available).
+        nextChange:
+          type: [string, "null"]
+          format: date-time
+          description: "When the display changes next by itself; `null` if it does not."
+
+    DisplaySwitch:
+      type: object
+      additionalProperties: false
+      required: ["on"]
+      properties:
+        "on": { type: boolean }
+
+    SlideshowState:
+      type: object
+      additionalProperties: false
+      required: [photo, paused, resting]
+      properties:
+        photo:
+          description: The photo on screen, `null` while none is shown (empty library, or the slideshow is still starting).
+          oneOf:
+            - $ref: "#/components/schemas/Photo"
+            - type: "null"
+        paused: { type: boolean, description: "The slideshow is paused, on the frame or from afar." }
+        resting: { type: boolean, description: "The display is off: the photo stays and steps are refused." }
+
+    SlideshowCommand:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [next, previous, pause, resume]
+
+    Settings:
+      type: object
+      additionalProperties: false
+      required:
+        [name, intervalSeconds, order, transition, transitionDurationMs, fillMode, orientation, clock, caption,
+         language, cacheBudgetMb, displaySchedule, autoUpdateCheck]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Control characters become a space when the name is set, then leading and trailing whitespace is removed; the length applies after this.
+        intervalSeconds: { type: integer, minimum: 5, maximum: 86400 }
+        order: { $ref: "#/components/schemas/Order" }
+        transition: { $ref: "#/components/schemas/Transition" }
+        transitionDurationMs: { type: integer, minimum: 0, maximum: 5000 }
+        fillMode: { $ref: "#/components/schemas/FillMode" }
+        orientation: { $ref: "#/components/schemas/Orientation" }
+        clock: { $ref: "#/components/schemas/Clock" }
+        caption: { $ref: "#/components/schemas/Caption" }
+        language: { $ref: "#/components/schemas/FrameLanguage" }
+        cacheBudgetMb: { type: integer, minimum: 100, maximum: 10000 }
+        displaySchedule: { $ref: "#/components/schemas/DisplaySchedule" }
+        autoUpdateCheck:
+          type: boolean
+          description: The frame checks GitHub for a new version by itself, every 6 hours.
+
+    SettingsPatch:
+      type: object
+      description: Like `Settings`, all fields optional, `clock`, `caption` and `displaySchedule` also partially.
+      properties:
+        name: { type: string }
+        intervalSeconds: { type: integer }
+        order: { type: string }
+        transition: { type: string }
+        transitionDurationMs: { type: integer }
+        fillMode: { type: string }
+        orientation: { type: string }
+        clock:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            position: { type: string }
+            sizePercent: { type: integer }
+            format: { type: string }
+        caption:
+          type: object
+          properties:
+            albumTitle: { type: boolean }
+            place: { type: boolean }
+            position: { type: string }
+        language: { type: string }
+        cacheBudgetMb: { type: integer }
+        displaySchedule:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            weekdays:
+              type: object
+              properties:
+                "on": { type: string }
+                "off": { type: string }
+            weekend:
+              type: object
+              properties:
+                "on": { type: string }
+                "off": { type: string }
+            wakeMinutes: { type: integer }
+        autoUpdateCheck: { type: boolean }
+
+    ImageUrls:
+      type: object
+      additionalProperties: false
+      required: [thumb, display, full]
+      properties:
+        thumb: { type: string, description: "Signed URL of the thumbnail." }
+        display: { type: string, description: "Signed URL of the display size. It changes whenever the part it shows changes." }
+        full: { type: string, description: "Signed URL of the uncropped photo, longest edge at most 2048 px." }
+
+    Crop:
+      type: object
+      additionalProperties: false
+      required: [x, y, zoom]
+      description: >-
+        Section of a photo: a focus point as fractions of width and height after EXIF rotation, and a zoom. Zoom 1
+        fills the screen, below 1 shows more of the photo with black borders, above 1 a detail.
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+        zoom: { type: number, exclusiveMinimum: 0, maximum: 4 }
+
+    Presentation:
+      type: object
+      additionalProperties: false
+      required: [x, y, width, height, zoom]
+      description: >-
+        The part of the photo the frame shows with the current settings and screen: its top left corner, width and
+        height as fractions of the photo, and the zoom it is shown with, clamped to what the screen allows.
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+        width: { type: number, exclusiveMinimum: 0, maximum: 1 }
+        height: { type: number, exclusiveMinimum: 0, maximum: 1 }
+        zoom: { type: number, exclusiveMinimum: 0 }
+
+    Photo:
+      type: object
+      additionalProperties: false
+      required:
+        [id, source, path, album, hidden, visible, quarantined, width, height, takenAt, fileSize, version, crop, presentation,
+         urls, comment, location]
+      properties:
+        id: { type: string }
+        source:
+          type: string
+          pattern: "^[a-z][a-z0-9]*$"
+          description: "Where the photo comes from: `local` or the ID of a remote source. Photos of a remote source are read only: they cannot be deleted, only hidden."
+        path: { type: string, description: "Path relative to the folder of its source." }
+        album: { type: [string, "null"], description: "Folder path of the photo below the folder of its source, `null` directly in it." }
+        hidden: { type: boolean, description: "The photo itself is hidden." }
+        visible: { type: boolean, description: "Neither the photo nor its album is hidden, by the album's own setting or by inheritance." }
+        quarantined:
+          type: boolean
+          description: |
+            The decoder crashed while rendering this version of the photo. It is never rendered or shown in the
+            slideshow, and its image URLs answer 503; it keeps its comment, section and visibility. `PATCH` with
+            `quarantined: false` tries it again, and a new version of the file lifts it.
+        width: { type: integer, description: "Width after EXIF rotation." }
+        height: { type: integer, description: "Height after EXIF rotation." }
+        takenAt: { type: string, format: date-time, description: "Capture date from EXIF, falling back to the file date." }
+        fileSize: { type: integer }
+        version: { type: integer, description: "Image version, increases with every change of the file." }
+        crop:
+          description: The photo's own section, `null` if the fill mode applies to it.
+          oneOf:
+            - $ref: "#/components/schemas/Crop"
+            - type: "null"
+        presentation:
+          $ref: "#/components/schemas/Presentation"
+          description: Depends on the settings and the screen as well; a client reloads photos when the settings version changes.
+        urls: { $ref: "#/components/schemas/ImageUrls" }
+        comment: { type: [string, "null"], description: "The photo's comment, `null` without one." }
+        location:
+          description: Where the photo was taken, from its EXIF data; `null` without a valid position.
+          oneOf:
+            - $ref: "#/components/schemas/Location"
+            - type: "null"
+
+    Location:
+      type: object
+      additionalProperties: false
+      required: [lat, lon, place]
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lon: { type: number, minimum: -180, maximum: 180 }
+        place:
+          type: [string, "null"]
+          description: >-
+            "Place, country" of the nearest place within 50 km, named offline from GeoNames (`cities500`, CC BY 4.0)
+            in the frame's language; `null` if there is none.
+
+    PhotoPage:
+      type: object
+      additionalProperties: false
+      required: [items, total, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Photo" }
+        total: { type: integer, description: "Number of all photos that match the filter." }
+        nextCursor: { type: [string, "null"] }
+
+    PhotoPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        hidden: { type: boolean }
+        comment:
+          type: [string, "null"]
+          description: >-
+            The comment as plain text, or `null` to remove it. Surrounding whitespace is removed and runs of line
+            breaks and other control characters become one space; an empty result removes the comment. More than 500
+            code points after that is rejected with 400 naming `comment`.
+        crop:
+          description: The section, or `null` to remove it so that the fill mode applies again.
+          oneOf:
+            - $ref: "#/components/schemas/Crop"
+            - type: "null"
+        quarantined:
+          type: boolean
+          enum: [false]
+          description: Only `false`, to try a quarantined photo again; nothing happens for a photo that is not quarantined.
+
+    UploadResult:
+      type: object
+      additionalProperties: false
+      required: [photos]
+      properties:
+        photos:
+          type: array
+          items: { $ref: "#/components/schemas/Photo" }
+
+    BatchRequest:
+      type: object
+      additionalProperties: false
+      required: [action, ids]
+      properties:
+        action: { type: string, enum: [hide, show, delete] }
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 10000
+          items: { type: string }
+
+    BatchResult:
+      type: object
+      additionalProperties: false
+      required: [processed, missing, failed]
+      properties:
+        processed: { type: integer }
+        missing:
+          type: array
+          items: { type: string }
+        failed:
+          type: array
+          items: { type: string }
+
+    SkippedFile:
+      type: object
+      additionalProperties: false
+      required: [path, reason, fileSize, modifiedAt]
+      properties:
+        path: { type: string }
+        reason:
+          type: string
+          enum: [unsupported, corrupt, too_large, crashed]
+          description: "`unsupported`: format cannot be decoded on this device; `corrupt`: file damaged; `too_large`: over 100 megapixels or an aspect ratio over 32:1; `crashed`: the decoder crashed or hung while checking the file, which is not checked again until its size or modification time changes."
+        fileSize: { type: integer }
+        modifiedAt: { type: string, format: date-time }
+
+    SkippedFileList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/SkippedFile" }
+
+    Album:
+      type: object
+      additionalProperties: false
+      required: [name, count, hidden, overridesParent, cover]
+      properties:
+        name: { type: string, description: "Folder path of the album (`holiday/2024`). The list is sorted by path." }
+        count: { type: integer, description: "Photos of the album and all its sub-albums." }
+        hidden: { type: boolean, description: "Effective state: by the album's own setting or inherited from its parent." }
+        overridesParent: { type: boolean, description: "A sub-album whose state differs from its parent's." }
+        cover:
+          description: Cover image, the newest photo of the album and its sub-albums.
+          oneOf:
+            - $ref: "#/components/schemas/ImageUrls"
+            - type: "null"
+
+    AlbumList:
+      type: object
+      additionalProperties: false
+      required: [albums]
+      properties:
+        albums:
+          type: array
+          items: { $ref: "#/components/schemas/Album" }
+
+    AlbumPatch:
+      type: object
+      additionalProperties: false
+      required: [name, hidden]
+      properties:
+        name: { type: string, description: "Folder path of the album." }
+        hidden: { type: boolean }
+
+    State:
+      type: object
+      additionalProperties: false
+      required: [libraryVersion, settingsVersion, transitionFallback, safeMode, appVersion]
+      properties:
+        libraryVersion: { type: integer }
+        settingsVersion: { type: integer }
+        transitionFallback:
+          type: boolean
+          description: >-
+            The frame changes photos instantly because its display could not keep up with the transition in the
+            settings. Changing the transition or its duration tries it again.
+        safeMode:
+          type: boolean
+          description: >-
+            The frame started in safe mode after repeated crashes: photos, sources and image work rest, the rest of
+            the API works. `POST /safe-mode/exit` starts it normally.
+        appVersion:
+          type: string
+          description: The installed version of the app; it changes when the frame updated itself.
+
+    LogEntry:
+      type: object
+      additionalProperties: false
+      required: [time, level, tag, message]
+      properties:
+        time: { type: string, format: date-time }
+        level: { type: string, enum: [debug, info, warn, error] }
+        tag: { type: string }
+        message: { type: string }
+
+    LogList:
+      type: object
+      additionalProperties: false
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/LogEntry" }
+
+    UpdatePhase:
+      type: string
+      enum: [idle, checking, downloading, ready, installing, unsupported]
+      description: >-
+        `ready`: an update is downloaded and verified; `installing`: the installation dialog is open on the frame;
+        `unsupported`: the installed app is not an official build, and the frame does not look for updates.
+
+    UpdateError:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            [update_unreachable, update_rate_limited, update_not_found, update_no_apk, update_no_checksum,
+             update_checksum, update_invalid_apk, update_signature, update_storage, update_tls, update_failed,
+             install_cancelled, install_unanswered, install_failed]
+        message: { type: string }
+
+    InstallRefusal:
+      type: object
+      additionalProperties: false
+      required: [error]
+      description: The `Error` envelope with the refusal codes of an installation request.
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [update_not_ready, install_not_allowed, install_in_progress, install_cooldown]
+            message: { type: string }
+
+    Release:
+      type: object
+      additionalProperties: false
+      required: [version, notes, publishedAt]
+      properties:
+        version: { type: string }
+        notes: { type: string, description: "The release notes as plain text, never to be rendered as HTML." }
+        publishedAt: { type: [string, "null"], format: date-time }
+
+    UpdateCheck:
+      type: object
+      additionalProperties: false
+      required: [at, result]
+      properties:
+        at: { type: string, format: date-time }
+        result: { type: string, enum: [up_to_date, update_found, failed] }
+
+    UpdateState:
+      type: object
+      additionalProperties: false
+      required: [installedVersion, phase, latest, lastCheck, error, installAllowed]
+      properties:
+        installedVersion: { type: string }
+        phase: { $ref: "#/components/schemas/UpdatePhase" }
+        latest:
+          description: The latest release the last successful check found, also when it is not newer; `null` before one was found.
+          oneOf:
+            - $ref: "#/components/schemas/Release"
+            - type: "null"
+        lastCheck:
+          description: Time and result of the last check; `null` before the first.
+          oneOf:
+            - $ref: "#/components/schemas/UpdateCheck"
+            - type: "null"
+        error:
+          description: The last error of check, download or installation; `null` after a success.
+          oneOf:
+            - $ref: "#/components/schemas/UpdateError"
+            - type: "null"
+        installAllowed:
+          type: boolean
+          description: Android allows openframe to install apps (apps from unknown sources).

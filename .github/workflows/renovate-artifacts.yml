@@ -1,0 +1,108 @@
+name: renovate-artifacts
+# When Renovate raises tests/contract/OPENFRAME_VERSION, this workflow downloads openframe's API contract of that
+# release and pushes it to Renovate's branch, so the pull request's tests run against the new contract. A failing test
+# keeps the new release from being adopted.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions: {}
+# A new push of Renovate cancels the older run; its push would fail anyway, the branch has moved on.
+concurrency:
+  group: renovate-artifacts-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  # Runs no code of a dependency: it downloads one file from openframe's tag with curl.
+  contract:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'renovate[bot]' &&
+      startsWith(github.head_ref, 'renovate/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Download the contract of the pinned release
+        run: tools/update-contract.sh "$(cat tests/contract/OPENFRAME_VERSION)"
+      # Only the contract, only as regular files.
+      - name: Check the change
+        id: change
+        run: |
+          git add -A
+          git diff --cached --stat
+          if git diff --cached --quiet; then exit 0; fi
+          paths=$(git diff --cached --name-only --no-renames)
+          outside=$(grep -vE '^tests/contract/(openapi\.yaml|OPENFRAME_VERSION)$' <<<"$paths" || true)
+          bad=$(git diff --cached --raw --no-renames | awk '$2 != "100644"')
+          if [ -n "$outside" ] || [ -n "$bad" ]; then
+            echo "The download touches more than the contract:" >&2
+            echo "$outside$bad" >&2
+            exit 1
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      # A push with GITHUB_TOKEN starts no workflow, a workflow_dispatch does. Renovate leaves the commit alone and keeps
+      # rebasing (gitIgnoredAuthors in renovate.json).
+      - name: Commit, push and start the checks
+        id: commit
+        if: steps.change.outputs.changed == 'true'
+        env:
+          BRANCH: ${{ github.head_ref }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "test: update the openframe contract" -m "Downloaded by the renovate-artifacts workflow."
+          sha=$(git rev-parse HEAD)
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
+          gh api "repos/$REPOSITORY/statuses/$sha" -f state=pending -f context=ci \
+            -f description="Started by renovate-artifacts" > /dev/null
+          gh workflow run ci.yml --repo "$REPOSITORY" --ref "$BRANCH"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+
+  # The push also creates pull_request runs, which wait for an approval (github-actions[bot] counts as an external
+  # contributor). A commit status carries the dispatched run's result to the pull request.
+  report:
+    needs: contract
+    if: needs.contract.outputs.sha != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      statuses: write
+    steps:
+      - name: Wait for the checks and report them
+        env:
+          SHA: ${{ needs.contract.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          status() {
+            gh api "repos/$REPOSITORY/statuses/$SHA" -f state="$1" -f context=ci -f description="$2" \
+              ${3:+-f target_url="$3"} > /dev/null
+          }
+          id=
+          for _ in $(seq 30); do
+            id=$(gh run list --repo "$REPOSITORY" --workflow ci.yml --commit "$SHA" --event workflow_dispatch \
+              --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            [ -n "$id" ] && break
+            sleep 10
+          done
+          if [ -z "$id" ]; then
+            status error "The dispatched run did not start"
+            exit 1
+          fi
+          url="https://github.com/$REPOSITORY/actions/runs/$id"
+          if gh run watch "$id" --repo "$REPOSITORY" --exit-status --interval 30 > /dev/null; then
+            status success "Dispatched run passed" "$url"
+          else
+            status failure "Dispatched run failed" "$url"
+            exit 1
+          fi
