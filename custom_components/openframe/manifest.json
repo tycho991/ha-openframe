@@ -1,0 +1,12 @@
+{
+  "domain": "openframe",
+  "name": "openframe",
+  "codeowners": ["@tycho991"],
+  "config_flow": true,
+  "documentation": "https://github.com/tycho991/ha-openframe#readme",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/tycho991/ha-openframe/issues",
+  "requirements": [],
+  "version": "0.0.0"
+}

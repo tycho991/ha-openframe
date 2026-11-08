@@ -2,9 +2,9 @@
 
 ## 1. Repository scaffold
 
-- [ ] 1.1 `pyproject.toml` (Python 3.14, `[tool.uv] package = false`, dev group with `pytest-homeassistant-custom-component` for Home Assistant 2026.10, `openapi-core`, `ruff`; pytest and ruff settings), `uv.lock`, `LICENSE` (MIT), `README.md` (install through HACS and by hand, pairing, entity table, minimum openframe and Home Assistant versions), `CLAUDE.md` with the rules of design decision 8; verify: `uv sync` succeeds and `uv run pytest` runs (no tests yet)
-- [ ] 1.2 `custom_components/openframe/manifest.json` (domain `openframe`, `config_flow`, `integration_type` `device`, `iot_class` `local_polling`, `version` `0.0.0`, documentation and issue tracker URLs), `const.py`, empty `__init__.py` with `async_setup_entry`/`async_unload_entry`, `hacs.json`, `version.txt`; verify: `uv run python -c "import json; json.load(open('custom_components/openframe/manifest.json'))"` succeeds
-- [ ] 1.3 `tests/contract/openapi.yaml` copied from openframe at the release that contains `/slideshow`, `tests/contract/OPENFRAME_VERSION` with that tag, `tools/update-contract.sh <tag>` that downloads both; verify: running the script with the pinned tag leaves `git diff` empty
+- [x] 1.1 `pyproject.toml` (Python 3.14, `[tool.uv] package = false`, dev group with `pytest-homeassistant-custom-component` for Home Assistant 2026.10, `openapi-core`, `ruff`; pytest and ruff settings), `uv.lock`, `LICENSE` (MIT), `README.md` (install through HACS and by hand, pairing, entity table, minimum openframe and Home Assistant versions), `CLAUDE.md` with the rules of design decision 8; verify: `uv sync` succeeds and `uv run pytest` runs (no tests yet)
+- [x] 1.2 `custom_components/openframe/manifest.json` (domain `openframe`, `config_flow`, `integration_type` `device`, `iot_class` `local_polling`, `version` `0.0.0`, documentation and issue tracker URLs), `const.py`, empty `__init__.py` with `async_setup_entry`/`async_unload_entry`, `hacs.json`, `version.txt`; verify: `uv run python -c "import json; json.load(open('custom_components/openframe/manifest.json'))"` succeeds
+- [x] 1.3 `tests/contract/openapi.yaml` copied from openframe at the release that contains `/slideshow`, `tests/contract/OPENFRAME_VERSION` with that tag, `tools/update-contract.sh <tag>` that downloads both; verify: running the script with the pinned tag leaves `git diff` empty
 
 ## 2. Fake frame and API client
 
