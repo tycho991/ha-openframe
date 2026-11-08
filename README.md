@@ -37,33 +37,97 @@ Assistant revokes its pairing on the frame.
 
 ## Entities
 
-| Entity | Platform | What it does |
+Entity IDs follow the frame's name, for example `switch.photo_frame_display` for a frame named
+"Photo frame". The key is the end of each entity's unique ID.
+
+| Key | Platform | What it does |
 |---|---|---|
-| Display | switch | Display on or off; attributes `cause` (`schedule`, `manual`, `wake`, `none`) and `next_change`. Unavailable while openframe is not a device administrator. |
-| Slideshow | switch | On while the slideshow plays, off while it is paused. |
-| Next photo, Previous photo | button | Step through the slideshow. Fails while the display is off. |
-| Photo on screen | image | The photo as the frame shows it. |
-| Photo on screen | sensor | Comment of the photo, or its file name; attributes `album`, `taken_at`, `place`, `photo_id`. |
-| Interval | number | Seconds per photo (5 to 86400). |
-| Transition duration | number | Milliseconds (0 to 5000). |
-| Order | select | `shuffle`, `chronological`. |
-| Transition | select | `fade`, `slide`, `none`. |
-| Fill mode | select | `auto`, `fill`, `fit`. |
-| Orientation | select | `landscape`, `portrait`. |
-| Clock | switch | Clock on the frame on or off. |
-| Display schedule | switch | Display schedule on or off; its times are set in the web UI. |
-| Automatic update check | switch | The frame checks for a new version by itself. |
-| Photos, Visible photos, Hidden photos | sensor | Photo totals (diagnostic). |
-| Albums | sensor | Number of albums. |
-| Album *name* | switch | On while the album is shown, attribute `photos`. Sub-albums are disabled by default. |
-| Sync *source* | button | Start a sync of a remote source. |
-| Last sync *source* | sensor | Time of the last sync; attributes `added`, `updated`, `removed`. |
-| Sync problem *source* | binary_sensor | On while the last sync failed; attribute `error`. |
-| App | update | Installed and latest openframe version with release notes; installing opens Android's installation dialog on the frame. |
-| Check for update | button | Ask the frame to check for an update now (diagnostic). |
-| Safe mode | binary_sensor | On while the frame runs in safe mode after repeated crashes. |
-| Leave safe mode | button | Start the frame normally again; available only in safe mode. |
-| Transition fallback | binary_sensor | On while the frame changes photos instantly because its display could not keep up (diagnostic). |
+| `display` | switch | Display on or off; attributes `cause` (`schedule`, `manual`, `wake`, `none`) and `next_change`. Unavailable while openframe is not a device administrator. |
+| `slideshow` | switch | On while the slideshow plays, off while it is paused. |
+| `next_photo`, `previous_photo` | button | Step through the slideshow. Fails while the display is off. |
+| `current_photo` | image | The photo as the frame shows it. |
+| `current_photo` | sensor | Comment of the photo, or its file name; attributes `album`, `taken_at`, `place`, `photo_id`. |
+| `interval` | number | Seconds per photo (5 to 86400). |
+| `transition_duration` | number | Milliseconds (0 to 5000). |
+| `order` | select | `shuffle`, `chronological`. |
+| `transition` | select | `fade`, `slide`, `none`. |
+| `fill_mode` | select | `auto`, `fill`, `fit`. |
+| `orientation` | select | `landscape`, `portrait`. |
+| `clock` | switch | Clock on the frame on or off. |
+| `display_schedule` | switch | Display schedule on or off; its times are set in the web UI. Unavailable while openframe is not a device administrator. |
+| `auto_update_check` | switch | The frame checks for a new version by itself. |
+| `photos`, `photos_visible`, `photos_hidden` | sensor | Photo totals (diagnostic). |
+| `albums` | sensor | Number of albums. |
+| `album_<name>` | switch | On while the album is shown, attribute `photos`. One per album; sub-albums are disabled by default. |
+| `sync_<source>` | button | Start a sync of a remote source. |
+| `last_sync_<source>` | sensor | Time of the last sync; attributes `added`, `updated`, `removed`. |
+| `sync_problem_<source>` | binary_sensor | On while the last sync failed; attribute `error`. |
+| `app` | update | Installed and latest openframe version with release notes; installing opens Android's installation dialog on the frame, which someone confirms there. |
+| `check_update` | button | Ask the frame to check for an update now (diagnostic). |
+| `safe_mode` | binary_sensor | On while the frame runs in safe mode after repeated crashes. |
+| `leave_safe_mode` | button | Start the frame normally again; available only in safe mode. |
+| `transition_fallback` | binary_sensor | On while the frame changes photos instantly because its display could not keep up (diagnostic). |
+
+A new album or source gets its entities within 15 seconds. The entities of a removed album or
+source stay and are unavailable, so automations that use them do not break silently; delete them
+on the device page when they are no longer needed.
+
+## Automation examples
+
+Display off when nobody is home, on again when someone comes back:
+
+```yaml
+automation:
+  - alias: Frame off when away
+    triggers:
+      - trigger: state
+        entity_id: zone.home
+        to: "0"
+    actions:
+      - action: switch.turn_off
+        target:
+          entity_id: switch.photo_frame_display
+  - alias: Frame on when back
+    triggers:
+      - trigger: numeric_state
+        entity_id: zone.home
+        above: 0
+    actions:
+      - action: switch.turn_on
+        target:
+          entity_id: switch.photo_frame_display
+```
+
+Pause the slideshow while the TV runs:
+
+```yaml
+automation:
+  - alias: Pause the frame while the TV runs
+    triggers:
+      - trigger: state
+        entity_id: media_player.tv
+    actions:
+      - action: >-
+          {{ 'switch.turn_off' if trigger.to_state.state == 'playing' else 'switch.turn_on' }}
+        target:
+          entity_id: switch.photo_frame_slideshow
+```
+
+Next photo with a button on the wall:
+
+```yaml
+automation:
+  - alias: Next photo
+    triggers:
+      - trigger: event
+        event_type: zha_event
+        event_data:
+          command: single
+    actions:
+      - action: button.press
+        target:
+          entity_id: button.photo_frame_next_photo
+```
 
 ## Development
 

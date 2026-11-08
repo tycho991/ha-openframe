@@ -28,7 +28,7 @@
 - [x] 4.6 Sources: dynamic sync buttons, last sync sensors and problem sensors; verify: tests for every scenario of "Remote sources"
 - [x] 4.7 `update` entity and `check_update` button; verify: tests for every scenario of "App update entity" and "Checking for an update", including `in_progress` while `downloading`
 - [x] 4.8 Health: `safe_mode` and `transition_fallback` binary sensors, `leave_safe_mode` button; translated `HomeAssistantError`s for refused and unanswered commands; verify: tests for every scenario of "Health of the frame" and "Errors of commands"
-- [ ] 4.9 Complete the entity table and the automation examples in `README.md`; verify: every entity key of design decision 6 appears in the table, and both translation files have the same keys (a test)
+- [x] 4.9 Complete the entity table and the automation examples in `README.md`; verify: every entity key of design decision 6 appears in the table, and both translation files have the same keys (a test)
 
 ## 5. CI, releases, dependencies
 
