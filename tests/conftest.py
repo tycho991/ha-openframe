@@ -9,6 +9,7 @@ import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_TOKEN
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openframe.const import CONF_CLIENT_ID, DOMAIN
@@ -79,3 +80,10 @@ async def tick(hass: HomeAssistant, freezer: FrozenDateTimeFactory, seconds: flo
 def scheduled_refresh(coordinator: object) -> bool:
     """Whether the coordinator's timer will poll again."""
     return getattr(coordinator, "_unsub_refresh", None) is not None
+
+
+def entity_id(hass: HomeAssistant, platform: str, key: str) -> str:
+    """The entity ID of a frame entity by its key, as the unique ID names it."""
+    found = er.async_get(hass).async_get_entity_id(platform, DOMAIN, f"{FRAME_ID}_{key}")
+    assert found is not None, f"no {platform} entity {key}"
+    return found

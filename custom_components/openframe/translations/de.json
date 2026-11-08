@@ -51,5 +51,212 @@
       "outdated_frame": "Die openframe-App des Rahmens ist zu alt. Aktualisiere sie auf openframe {version} oder neuer und füge den Rahmen erneut hinzu.",
       "wrong_frame": "Unter der gespeicherten Adresse antwortet ein anderer Rahmen. Gib über „Neu konfigurieren“ die neue Adresse des Rahmens ein."
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "safe_mode": {
+        "name": "Abgesicherter Modus"
+      },
+      "transition_fallback": {
+        "name": "Übergang abgeschaltet"
+      },
+      "sync_problem": {
+        "name": "Synchronisationsproblem {source}",
+        "state_attributes": {
+          "error": {
+            "name": "Fehler"
+          }
+        }
+      }
+    },
+    "button": {
+      "next_photo": {
+        "name": "Nächstes Foto"
+      },
+      "previous_photo": {
+        "name": "Vorheriges Foto"
+      },
+      "check_update": {
+        "name": "Nach Update suchen"
+      },
+      "leave_safe_mode": {
+        "name": "Abgesicherten Modus verlassen"
+      },
+      "sync": {
+        "name": "{source} synchronisieren"
+      }
+    },
+    "image": {
+      "current_photo": {
+        "name": "Angezeigtes Foto"
+      }
+    },
+    "number": {
+      "interval": {
+        "name": "Intervall"
+      },
+      "transition_duration": {
+        "name": "Übergangsdauer"
+      }
+    },
+    "select": {
+      "order": {
+        "name": "Reihenfolge",
+        "state": {
+          "shuffle": "Zufällig",
+          "chronological": "Chronologisch"
+        }
+      },
+      "transition": {
+        "name": "Übergang",
+        "state": {
+          "fade": "Überblenden",
+          "slide": "Schieben",
+          "none": "Keiner"
+        }
+      },
+      "fill_mode": {
+        "name": "Füllmodus",
+        "state": {
+          "auto": "Automatisch",
+          "fill": "Füllen",
+          "fit": "Einpassen"
+        }
+      },
+      "orientation": {
+        "name": "Ausrichtung",
+        "state": {
+          "landscape": "Querformat",
+          "portrait": "Hochformat"
+        }
+      }
+    },
+    "sensor": {
+      "current_photo": {
+        "name": "Angezeigtes Foto",
+        "state_attributes": {
+          "album": {
+            "name": "Album"
+          },
+          "taken_at": {
+            "name": "Aufgenommen am"
+          },
+          "place": {
+            "name": "Ort"
+          },
+          "photo_id": {
+            "name": "Foto-ID"
+          }
+        }
+      },
+      "photos": {
+        "name": "Fotos"
+      },
+      "photos_visible": {
+        "name": "Sichtbare Fotos"
+      },
+      "photos_hidden": {
+        "name": "Ausgeblendete Fotos"
+      },
+      "albums": {
+        "name": "Alben"
+      },
+      "last_sync": {
+        "name": "Letzte Synchronisation {source}",
+        "state_attributes": {
+          "added": {
+            "name": "Hinzugefügt"
+          },
+          "updated": {
+            "name": "Aktualisiert"
+          },
+          "removed": {
+            "name": "Entfernt"
+          }
+        }
+      }
+    },
+    "switch": {
+      "display": {
+        "name": "Display",
+        "state_attributes": {
+          "cause": {
+            "name": "Grund",
+            "state": {
+              "schedule": "Zeitplan",
+              "manual": "Manuell",
+              "wake": "Geweckt",
+              "none": "Keiner"
+            }
+          },
+          "next_change": {
+            "name": "Nächste Änderung"
+          }
+        }
+      },
+      "slideshow": {
+        "name": "Diashow"
+      },
+      "clock": {
+        "name": "Uhr"
+      },
+      "display_schedule": {
+        "name": "Display-Zeitplan"
+      },
+      "auto_update_check": {
+        "name": "Automatische Update-Suche"
+      },
+      "album": {
+        "name": "Album {album}",
+        "state_attributes": {
+          "photos": {
+            "name": "Fotos"
+          }
+        }
+      }
+    },
+    "update": {
+      "app": {
+        "name": "App"
+      }
+    }
+  },
+  "exceptions": {
+    "no_answer": {
+      "message": "Der Rahmen antwortet nicht."
+    },
+    "unauthorized": {
+      "message": "Der Rahmen akzeptiert die Kopplung von Home Assistant nicht mehr. Kopple den Rahmen erneut."
+    },
+    "display_off": {
+      "message": "Das Display ist aus."
+    },
+    "display_unavailable": {
+      "message": "Der Rahmen kann sein Display nicht schalten: openframe ist kein Geräteadministrator."
+    },
+    "safe_mode": {
+      "message": "Der Rahmen ist im abgesicherten Modus."
+    },
+    "not_in_safe_mode": {
+      "message": "Der Rahmen ist nicht im abgesicherten Modus."
+    },
+    "update_not_ready": {
+      "message": "Es ist kein Update heruntergeladen und bereit zur Installation."
+    },
+    "install_not_allowed": {
+      "message": "Android erlaubt openframe nicht, auf dem Rahmen Apps zu installieren."
+    },
+    "install_in_progress": {
+      "message": "Der Installationsdialog ist auf dem Rahmen bereits offen."
+    },
+    "install_cooldown": {
+      "message": "Eine Installation wurde gerade abgebrochen. Versuche es in ein paar Minuten erneut."
+    },
+    "source_no_folder": {
+      "message": "Wähle zuerst in der Weboberfläche des Rahmens einen Ordner für diese Quelle."
+    },
+    "refused": {
+      "message": "Der Rahmen hat den Befehl abgelehnt: {message}"
+    }
   }
 }

@@ -20,14 +20,14 @@
 
 ## 4. Entities
 
-- [ ] 4.1 `entity.py` (base class and device info per design decision 6, `sw_version` following `appVersion`); verify: tests for "One device per frame"
-- [ ] 4.2 `switch` (`display`, `slideshow`) and `button` (`next_photo`, `previous_photo`) with the state from the command's answer; verify: tests for every scenario of "Display switch", "Slideshow controls" and "Fresh state after a command"
-- [ ] 4.3 `image` and `sensor` `current_photo` per design decision 5; verify: tests for every scenario of "Photo on screen", including that `image_last_updated` changes with a new section of the same photo and not on an unchanged poll
-- [ ] 4.4 Settings entities: `number` (`interval`, `transition_duration`), `select` (`order`, `transition`, `fill_mode`, `orientation`), `switch` (`clock`, `display_schedule`, `auto_update_check`), each sending only its own field; verify: tests for every scenario of "Settings as configuration entities", checking the request body on the fake frame
-- [ ] 4.5 Library: photo total sensors, album count, dynamic album switches; verify: tests for "Photo counts" and every scenario of "One switch per album", including a removed album becoming unavailable
-- [ ] 4.6 Sources: dynamic sync buttons, last sync sensors and problem sensors; verify: tests for every scenario of "Remote sources"
-- [ ] 4.7 `update` entity and `check_update` button; verify: tests for every scenario of "App update entity" and "Checking for an update", including `in_progress` while `downloading`
-- [ ] 4.8 Health: `safe_mode` and `transition_fallback` binary sensors, `leave_safe_mode` button; translated `HomeAssistantError`s for refused and unanswered commands; verify: tests for every scenario of "Health of the frame" and "Errors of commands"
+- [x] 4.1 `entity.py` (base class and device info per design decision 6, `sw_version` following `appVersion`); verify: tests for "One device per frame"
+- [x] 4.2 `switch` (`display`, `slideshow`) and `button` (`next_photo`, `previous_photo`) with the state from the command's answer; verify: tests for every scenario of "Display switch", "Slideshow controls" and "Fresh state after a command"
+- [x] 4.3 `image` and `sensor` `current_photo` per design decision 5; verify: tests for every scenario of "Photo on screen", including that `image_last_updated` changes with a new section of the same photo and not on an unchanged poll
+- [x] 4.4 Settings entities: `number` (`interval`, `transition_duration`), `select` (`order`, `transition`, `fill_mode`, `orientation`), `switch` (`clock`, `display_schedule`, `auto_update_check`), each sending only its own field; verify: tests for every scenario of "Settings as configuration entities", checking the request body on the fake frame
+- [x] 4.5 Library: photo total sensors, album count, dynamic album switches; verify: tests for "Photo counts" and every scenario of "One switch per album", including a removed album becoming unavailable
+- [x] 4.6 Sources: dynamic sync buttons, last sync sensors and problem sensors; verify: tests for every scenario of "Remote sources"
+- [x] 4.7 `update` entity and `check_update` button; verify: tests for every scenario of "App update entity" and "Checking for an update", including `in_progress` while `downloading`
+- [x] 4.8 Health: `safe_mode` and `transition_fallback` binary sensors, `leave_safe_mode` button; translated `HomeAssistantError`s for refused and unanswered commands; verify: tests for every scenario of "Health of the frame" and "Errors of commands"
 - [ ] 4.9 Complete the entity table and the automation examples in `README.md`; verify: every entity key of design decision 6 appears in the table, and both translation files have the same keys (a test)
 
 ## 5. CI, releases, dependencies
