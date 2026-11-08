@@ -6,12 +6,13 @@ import logging
 
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import OpenframeClient, OpenframeError
-from .const import CONF_CLIENT_ID
-from .coordinator import OpenframeConfigEntry, OpenframeCoordinator
-from .entity import follow_app_version
+from .const import CONF_CLIENT_ID, DOMAIN
+from .coordinator import OpenframeConfigEntry, OpenframeCoordinator, outdated_issue_id
+from .entity import follow_app_version, source_names
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,9 +47,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: OpenframeConfigEntry) ->
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    names = source_names(coordinator.data)
+
     @callback
     def on_update() -> None:
         follow_app_version(hass, coordinator)
+        current = source_names(coordinator.data)
+        if any(current.get(source_id, name) != name for source_id, name in names.items()):
+            # A source entity takes its name when it is created; a reload names it anew
+            hass.config_entries.async_schedule_reload(entry.entry_id)
+        names.update(current)
 
     # Also keeps the coordinator polling with every entity disabled (it polls only while it has
     # listeners), so that a revoked pairing still leads to re-authentication.
@@ -63,6 +71,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: OpenframeConfigEntry) -
 
 async def async_remove_entry(hass: HomeAssistant, entry: OpenframeConfigEntry) -> None:
     """Revoke Home Assistant's pairing on the frame; a frame that does not answer is skipped."""
+    ir.async_delete_issue(hass, DOMAIN, outdated_issue_id(entry))
     try:
         await _client(hass, entry).delete_client(entry.data[CONF_CLIENT_ID], timeout=REVOKE_TIMEOUT)
     except OpenframeError as err:

@@ -136,3 +136,29 @@ def album_of(data: FrameData, name: str) -> dict[str, Any] | None:
 
 def source_of(data: FrameData, source_id: str) -> dict[str, Any] | None:
     return next((s for s in data.sources if s["id"] == source_id), None)
+
+
+def source_names(data: FrameData) -> dict[str, str]:
+    return {s["id"]: s["settings"]["name"] for s in data.sources}
+
+
+class SourceEntity(OpenframeEntity):
+    """An entity of one remote source, named after it; unavailable while the source is gone.
+
+    The name is taken when the entity is created; the entry reloads when a source is renamed.
+    """
+
+    def __init__(self, coordinator: OpenframeCoordinator, key: str, source_id: str) -> None:
+        super().__init__(coordinator, f"{key}_{source_id}", translation_key=key)
+        self.source_id = source_id
+        self._attr_translation_placeholders = {
+            "source": source_names(coordinator.data).get(source_id, source_id)
+        }
+
+    @property
+    def source(self) -> dict[str, Any] | None:
+        return source_of(self.data, self.source_id)
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.source is not None

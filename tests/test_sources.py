@@ -50,3 +50,26 @@ async def test_failed_sync(
     problem = hass.states.get(entity_id(hass, "binary_sensor", "sync_problem_nc1"))
     assert problem.state == STATE_ON
     assert problem.attributes["error"] == "The server is not reachable."
+
+
+async def test_source_renamed(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › Remote sources › Source renamed."""
+    frame.add_source("nc1", "Shared photos")
+    await tick(hass, freezer, 60)
+    keys = (
+        ("sensor", "last_sync_nc1"),
+        ("button", "sync_nc1"),
+        ("binary_sensor", "sync_problem_nc1"),
+    )
+    ids = [entity_id(hass, platform, key) for platform, key in keys]
+    frame.source("nc1")["settings"]["name"] = "Family photos"
+    await tick(hass, freezer, 60)
+    await hass.async_block_till_done()
+    assert [entity_id(hass, platform, key) for platform, key in keys] == ids, "the IDs stay"
+    assert [hass.states.get(i).name for i in ids] == [
+        "Test frame Last sync Family photos",
+        "Test frame Sync Family photos",
+        "Test frame Sync problem Family photos",
+    ]

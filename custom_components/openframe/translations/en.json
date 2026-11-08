@@ -259,5 +259,11 @@
     "refused": {
       "message": "The frame refused the command: {message}"
     }
+  },
+  "issues": {
+    "outdated_frame": {
+      "title": "{name} needs a newer openframe",
+      "description": "{name} no longer offers an endpoint this integration needs, for example because an older openframe was installed on it. Update the frame to openframe {version} or later; Home Assistant connects again by itself."
+    }
   }
 }

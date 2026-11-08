@@ -19,7 +19,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .coordinator import FrameData, OpenframeConfigEntry, OpenframeCoordinator
-from .entity import OpenframeEntity, add_dynamic_entities, source_of
+from .entity import OpenframeEntity, SourceEntity, add_dynamic_entities
 
 MAX_STATE = 255
 
@@ -126,32 +126,23 @@ class CountSensor(OpenframeEntity, SensorEntity):
         return self.entity_description.value(self.data)
 
 
-class LastSyncSensor(OpenframeEntity, SensorEntity):
+class LastSyncSensor(SourceEntity, SensorEntity):
     """Time of the last sync of a source, with what it changed."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, coordinator: OpenframeCoordinator, source_id: str) -> None:
-        super().__init__(coordinator, f"last_sync_{source_id}", translation_key="last_sync")
-        self.source_id = source_id
-        source = source_of(coordinator.data, source_id)
-        self._attr_translation_placeholders = {
-            "source": source["settings"]["name"] if source else source_id
-        }
-
-    @property
-    def available(self) -> bool:
-        return super().available and source_of(self.data, self.source_id) is not None
+        super().__init__(coordinator, "last_sync", source_id)
 
     @property
     def native_value(self) -> datetime | None:
-        source = source_of(self.data, self.source_id)
+        source = self.source
         at = source["status"]["lastSyncAt"] if source else None
         return dt_util.parse_datetime(at) if at else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        source = source_of(self.data, self.source_id)
+        source = self.source
         if source is None:
             return None
         status = source["status"]

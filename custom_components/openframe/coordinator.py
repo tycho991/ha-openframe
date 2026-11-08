@@ -17,11 +17,12 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .api import OpenframeAuthError, OpenframeClient, OpenframeError, OpenframeResponseError
-from .const import DOMAIN
+from .const import DOMAIN, MIN_OPENFRAME_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +34,10 @@ SLACK = timedelta(seconds=2)
 BUSY_UPDATE_PHASES = frozenset({"checking", "downloading", "installing"})
 
 type OpenframeConfigEntry = ConfigEntry[OpenframeCoordinator]
+
+
+def outdated_issue_id(entry: ConfigEntry) -> str:
+    return f"outdated_frame_{entry.entry_id}"
 
 
 @dataclass(frozen=True)
@@ -81,6 +86,8 @@ class OpenframeCoordinator(DataUpdateCoordinator[FrameData]):
         self._full_at: datetime | None = None
         self._force_medium = False
         self._force_full = False
+        # None until the first answer, so that an issue left from an earlier setup is cleared
+        self._outdated: bool | None = None
 
     def request_full(self) -> None:
         """Read settings, albums, info and totals on the next tick."""
@@ -92,11 +99,40 @@ class OpenframeCoordinator(DataUpdateCoordinator[FrameData]):
 
     async def _async_update_data(self) -> FrameData:
         try:
-            return await self._read()
+            data = await self._read()
         except OpenframeAuthError as err:
             raise ConfigEntryAuthFailed("The frame rejected the token") from err
+        except OpenframeResponseError as err:
+            if err.status == 404:
+                # An endpoint the integration needs is gone, as after a downgrade of the app
+                self._set_outdated(True)
+            raise UpdateFailed(str(err)) from err
         except OpenframeError as err:
             raise UpdateFailed(str(err)) from err
+        self._set_outdated(False)
+        return data
+
+    def _set_outdated(self, outdated: bool) -> None:
+        """Show a repair issue while the frame lacks an endpoint, and remove it once it answers."""
+        if outdated == self._outdated:
+            return
+        self._outdated = outdated
+        issue_id = outdated_issue_id(self.config_entry)
+        if outdated:
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.ERROR,
+                translation_key="outdated_frame",
+                translation_placeholders={
+                    "name": self.config_entry.title,
+                    "version": MIN_OPENFRAME_VERSION,
+                },
+            )
+        else:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
 
     async def _read(self) -> FrameData:
         client = self.client

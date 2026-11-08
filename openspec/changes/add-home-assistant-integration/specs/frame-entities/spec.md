@@ -96,7 +96,7 @@ Each album SHALL have a switch that is on while the album is shown and off while
 - **THEN** its switch exists but is disabled until the user enables it
 
 ### Requirement: Remote sources
-Each remote source of the frame SHALL have a button that starts a sync, a timestamp sensor of the last sync with the numbers of added, updated and removed photos as attributes, and a problem sensor that is on while the last sync failed, with the error as attribute.
+Each remote source of the frame SHALL have a button that starts a sync, a timestamp sensor of the last sync with the numbers of added, updated and removed photos as attributes, and a problem sensor that is on while the last sync failed, with the error as attribute. These entities SHALL be named after the source and SHALL follow a renamed source without changing their entity IDs.
 
 #### Scenario: Sync from Home Assistant
 - **WHEN** the user presses the sync button of a source
@@ -105,6 +105,10 @@ Each remote source of the frame SHALL have a button that starts a sync, a timest
 #### Scenario: Failed sync
 - **WHEN** the last sync of a source failed because the server was unreachable
 - **THEN** its problem sensor is on and names the error
+
+#### Scenario: Source renamed
+- **WHEN** the user renames a source in the frame's web UI
+- **THEN** its three entities carry the new name within a minute and keep their entity IDs
 
 ### Requirement: App update entity
 An update entity SHALL show the installed and the latest app version with the release notes as plain text, and SHALL show progress while the frame downloads or installs. Installing SHALL open the installation dialog on the frame, which someone confirms there. While the frame may not install apps or runs an unofficial build, installing SHALL NOT be offered.

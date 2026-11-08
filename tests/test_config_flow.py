@@ -10,6 +10,7 @@ from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openframe.const import CONF_CLIENT_ID, DOMAIN
@@ -151,6 +152,52 @@ async def test_frame_before_the_slideshow_api(
     assert result["description_placeholders"] == {"version": "0.5.0"}
     assert hass.config_entries.async_entries(DOMAIN) == []
     assert frame.clients == {}, "the new pairing is revoked again"
+
+
+async def test_frame_downgraded_after_setup(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-connection › Minimum frame version › Frame downgraded after setup."""
+    issues = ir.async_get(hass)
+    issue_id = f"outdated_frame_{entry.entry_id}"
+    frame.outdated = True
+    await tick(hass, freezer)
+    issue = issues.async_get_issue(DOMAIN, issue_id)
+    assert issue is not None
+    assert issue.translation_key == "outdated_frame"
+    assert issue.translation_placeholders == {"name": "Test frame", "version": "0.5.0"}
+    assert hass.states.get("switch.test_frame_slideshow").state == "unavailable"
+
+    frame.outdated = False
+    await tick(hass, freezer)
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+    assert hass.states.get("switch.test_frame_slideshow").state == "on"
+
+
+async def test_outdated_issue_from_a_failed_setup_is_cleared(
+    hass: HomeAssistant, frame: FakeFrame, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.outdated = True
+    config_entry = mock_entry(frame)
+    config_entry.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(config_entry.entry_id)
+    assert config_entry.state is ConfigEntryState.SETUP_RETRY
+    issue_id = f"outdated_frame_{config_entry.entry_id}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
+
+    frame.outdated = False
+    await hass.config_entries.async_reload(config_entry.entry_id)
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_outdated_issue_goes_with_the_frame(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.outdated = True
+    await tick(hass, freezer)
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"outdated_frame_{entry.entry_id}") is None
 
 
 async def test_unexpected_answer_is_not_called_outdated(
