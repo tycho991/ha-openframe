@@ -19,6 +19,7 @@
   ],
   "packages": {
     ".": {
+      "initial-version": "0.1.0",
       "extra-files": [
         { "type": "json", "path": "custom_components/openframe/manifest.json", "jsonpath": "$.version" }
       ]
