@@ -41,7 +41,7 @@
 ## 6. Devices
 
 - [x] 6.1 Rows in `../openframe-private/DEVICE_TEST.md` with their references: pairing and the entities against both frames (`frame-connection` › Pairing with the code on the frame › Correct code), the display switch on the Frameo (`frame-entities` › Display switch › Display off from an automation), next photo from Home Assistant (`frame-entities` › Slideshow controls › Previous photo), revoked pairing (`frame-connection` › Re-authentication after a revoked pairing), and the CPU load of the Frameo over a day with the integration polling (design, Risks); verify: the rows exist with their references
-- [ ] 6.2 Run the rows of 6.1 with a Home Assistant test instance; ask before any persistent change on a device; verify: results entered, a finding in `../openframe-private/FINDINGS.md` for anything that differs
+- [x] 6.2 Run the rows of 6.1 with a Home Assistant test instance; ask before any persistent change on a device; verify: results entered, a finding in `../openframe-private/FINDINGS.md` for anything that differs
 
 ## 7. Integration
 
