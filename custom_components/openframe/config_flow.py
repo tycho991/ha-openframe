@@ -61,6 +61,8 @@ class OpenframeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Add, re-pair and move openframe frames."""
 
     VERSION = 1
+    # 2: the display is a light; the migration removes the switch of minor version 1
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         self._host = ""

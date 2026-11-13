@@ -115,9 +115,10 @@ automation:
           entity_id: light.photo_frame_display
 ```
 
-Dim the frame while a movie runs, and back to full brightness afterwards. A brightness from Home
-Assistant outside a dim period becomes the frame's fixed level; for dimming every evening, set a
-dim time in the frame's web UI and the `dim_level` instead.
+Dim the frame while a movie runs, and back to full brightness afterwards. `light.turn_on` also
+switches a display that is off on, so the condition leaves a frame that is off alone. A brightness
+from Home Assistant outside a dim period becomes the frame's fixed level; for dimming every
+evening, set a dim time in the frame's web UI and the `dim_level` instead.
 
 ```yaml
 automation:
@@ -125,12 +126,22 @@ automation:
     triggers:
       - trigger: state
         entity_id: media_player.tv
+        to: playing
+        id: start
+      - trigger: state
+        entity_id: media_player.tv
+        from: playing
+        id: end
+    conditions:
+      - condition: state
+        entity_id: light.photo_frame_display
+        state: "on"
     actions:
       - action: light.turn_on
         target:
           entity_id: light.photo_frame_display
         data:
-          brightness_pct: "{{ 20 if trigger.to_state.state == 'playing' else 100 }}"
+          brightness_pct: "{{ 20 if trigger.id == 'start' else 100 }}"
 ```
 
 Pause the slideshow while the TV runs:

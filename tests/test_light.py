@@ -36,7 +36,8 @@ async def test_dim_from_an_automation(
     state = hass.states.get(display)
     assert state.state == STATE_ON
     assert state.attributes[ATTR_BRIGHTNESS] == to_brightness(50)
-    assert frame.bodies[-1] == ("PUT", "/display", {"on": True, "brightness": 50})
+    # The display was on: only the brightness is sent, `on` would be a manual switch
+    assert frame.bodies[-1] == ("PUT", "/display", {"brightness": 50})
     # The brightness became the frame's fixed level, which the next tick reads
     frame.reset_requests()
     await tick(hass, freezer)
@@ -105,6 +106,39 @@ async def test_dimmed_without_device_administrator(
     assert frame.display["brightness"]["level"] == 40
 
 
+async def test_brightness_keeps_a_woken_display_woken(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › Brightness of the display light › Woken display dimmed: no `on` is sent,
+    which openframe would take as a manual switch that ends the wake."""
+    frame.display.update(cause="wake")
+    await tick(hass, freezer)
+    await call(hass, "light", "turn_on", entity_id(hass, "light", "display"), brightness_pct=30)
+    assert frame.bodies[-1] == ("PUT", "/display", {"brightness": 30})
+    assert frame.display["cause"] == "wake"
+
+
+async def test_turn_on_of_a_display_that_is_on_sends_nothing(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    frame.reset_requests()
+    await call(hass, "light", "turn_on", entity_id(hass, "light", "display"))
+    assert frame.count("PUT", "/display") == 0
+
+
+async def test_display_off_without_device_administrator(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """A brightness cannot turn on a display the frame cannot switch: the request fails as a
+    whole instead of succeeding with the display still off."""
+    frame.display.update(on=False, available=False, cause="none")
+    await tick(hass, freezer)
+    with pytest.raises(HomeAssistantError) as caught:
+        await call(hass, "light", "turn_on", entity_id(hass, "light", "display"), brightness_pct=50)
+    assert caught.value.translation_key == "display_unavailable"
+    assert frame.display["brightness"]["level"] == 80
+
+
 async def test_update_from_a_version_with_the_switch(
     hass: HomeAssistant, frame: FakeFrame, freezer: FrozenDateTimeFactory
 ) -> None:
@@ -127,6 +161,25 @@ async def test_update_from_a_version_with_the_switch(
     assert hass.states.get("light.test_frame_display").state == STATE_ON
     await call(hass, "light", "turn_off", "light.test_frame_display")
     assert frame.display["on"] is False
+
+
+async def test_former_switch_goes_also_while_the_frame_is_outdated(
+    hass: HomeAssistant, frame: FakeFrame
+) -> None:
+    frame.before_brightness = True
+    config_entry = mock_entry(frame)
+    config_entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    registry.async_get_or_create(
+        "switch",
+        DOMAIN,
+        f"{FRAME_ID}_display",
+        suggested_object_id="test_frame_display",
+        config_entry=config_entry,
+    )
+    assert not await hass.config_entries.async_setup(config_entry.entry_id)
+    assert registry.async_get("switch.test_frame_display") is None
+    assert config_entry.minor_version == 2
 
 
 async def test_setup_without_a_former_switch(

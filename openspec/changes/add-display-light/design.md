@@ -20,7 +20,9 @@ openframe 0.6.0 (see its change `add-display-brightness`) adds to `GET /display`
 
 ### 1. A light with the unique ID of the switch, the switch removed from the registry
 
-`light.py` adds `DisplayLight(OpenframeEntity, LightEntity)` with key and translation key `display`, so its unique ID stays `<frame id>_display`; the entity registry keys entries by domain, platform and unique ID, so the light and the old switch entry do not clash. `async_setup_entry` of the light platform looks up `("switch", DOMAIN, "<frame id>_display")` in the entity registry and removes it if present, before adding the light. Home Assistant cannot move an entity between domains, so a name, area or icon the user gave the switch is lost; the README says so.
+`light.py` adds `DisplayLight(OpenframeEntity, LightEntity)` with key and translation key `display`, so its unique ID stays `<frame id>_display`; the entity registry keys entries by domain, platform and unique ID, so the light and the old switch entry do not clash. The config flow's `MINOR_VERSION` becomes 2, and `async_migrate_entry` removes `("switch", DOMAIN, "<frame id>_display")` from the entity registry for an entry of minor version 1. Home Assistant runs the migration once, before the setup, so the switch goes also while the frame does not answer or is still on an older openframe.
+
+*Alternative:* removing the switch in the light platform's setup. Rejected in review: the platforms are not set up while the first refresh fails, so an outdated frame kept an orphaned switch, and the lookup ran on every setup. Home Assistant cannot move an entity between domains, so a name, area or icon the user gave the switch is lost; the README says so.
 
 *Alternative:* keep the switch for one release with a repair issue that points to the light. Rejected by the owner: ha-openframe 0.1.0 has few installations, and two entities for one display confuse scenes and voice assistants.
 
@@ -34,9 +36,9 @@ openframe 0.6.0 (see its change `add-display-brightness`) adds to `GET /display`
 ### 3. Turning on and off
 
 - `async_turn_off` sends `{"on": false}`.
-- `async_turn_on(brightness=b)` sends one `PUT /display`: `"on": true` when `display.available` or no brightness was given, and `"brightness": <percent>` when a brightness was given. So a frame without device administrator but with the permission can still be dimmed, and a plain turn on keeps today's behaviour, including the 409 `display_unavailable`. A brightness while the light is in mode `ONOFF` does not reach the integration: Home Assistant drops attributes of unsupported colour modes.
+- `async_turn_on(brightness=b)` sends one `PUT /display`: `"on": true` only while the display is off, and `"brightness": <percent>` when a brightness was given; with neither it sends nothing. For openframe `on` is a manual switch that ends a wake and holds the display on until the next switching time, so it must not ride along with a brightness for a display that is on. A frame without device administration can still be dimmed while its display is on; with the display off it refuses the request as a whole with 409 `display_unavailable`. A brightness while the light is in mode `ONOFF` does not reach the integration: Home Assistant drops attributes of unsupported colour modes.
 - `available` is `super().available and (display.available or brightness.available)`.
-- The answer of `PUT /display` goes into the data with `set_display`. Because a brightness outside a dim period changes the settings, the light then calls `request_full()` so the brightness mode select shows `manual` on the next tick instead of after up to 15 seconds plus the settings check.
+- The answer of `PUT /display` goes into the data with `set_display`. A brightness outside a dim period changes the settings and with them `settingsVersion` in `GET /state`, so the next tick reads the settings and the brightness mode select shows `manual`; no extra read is requested.
 
 *Alternative:* available only while `display.available`, as the switch. Rejected: it hides the brightness on a frame that has the permission but no device administration, although openframe allows that combination.
 

@@ -5,12 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import OpenframeConfigEntry, OpenframeCoordinator
 from .entity import OpenframeEntity
 
@@ -22,14 +19,8 @@ async def async_setup_entry(
     entry: OpenframeConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    coordinator = entry.runtime_data
-    # Versions before the light had the display as a switch with the same unique ID; Home
-    # Assistant cannot move an entity to another domain, so the switch goes
-    registry = er.async_get(hass)
-    unique_id = f"{coordinator.frame_id}_{KEY}"
-    if switch := registry.async_get_entity_id(Platform.SWITCH, DOMAIN, unique_id):
-        registry.async_remove(switch)
-    async_add_entities([DisplayLight(coordinator)])
+    # The display switch of earlier versions is removed by `async_migrate_entry`
+    async_add_entities([DisplayLight(entry.runtime_data)])
 
 
 def to_percent(brightness: int) -> int:
@@ -94,17 +85,19 @@ class DisplayLight(OpenframeEntity, LightEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         brightness = kwargs.get(ATTR_BRIGHTNESS)
         percent = None if brightness is None else to_percent(brightness)
-        # A frame without device administration can still be dimmed; a plain turn on asks for
-        # the display as before, and the frame refuses it with `display_unavailable`
-        on = True if percent is None or self.data.display["available"] else None
+        # `on` only for a display that is off: for openframe it is a manual switch, which would
+        # end a wake and hold the display on until the next switching time. A frame without
+        # device administration refuses a display that is off as a whole (`display_unavailable`)
+        on = None if self.is_on else True
+        if on is None and percent is None:
+            return
         await self._send(on, percent)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._send(False, None)
 
     async def _send(self, on: bool | None, percent: int | None) -> None:
+        # A brightness outside a dim period changes the settings; the next tick reads them,
+        # because their version in GET /state changed
         coordinator = self.coordinator
         coordinator.set_display(await self.command(coordinator.client.set_display(on, percent)))
-        if percent is not None:
-            # Outside a dim period the level becomes the stored brightness with mode `manual`
-            coordinator.request_full()

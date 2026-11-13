@@ -32,7 +32,7 @@ A command the frame refuses or does not answer SHALL fail in Home Assistant with
 ## ADDED Requirements
 
 ### Requirement: Brightness of the display light
-While the display is on, the light SHALL show the brightness the frame reports. Turning the light on with a brightness SHALL set the display to it at once, as openframe does for `PUT /display`: outside a dim period of the schedule it becomes the frame's fixed level, during one it holds until the period ends. While the frame may not modify system settings, the light SHALL only switch on and off.
+While the display is on, the light SHALL show the brightness the frame reports. Turning the light on with a brightness SHALL set the display to it at once, as openframe does for `PUT /display`: outside a dim period it becomes the frame's fixed level, during one it holds until the period ends. A display that is on SHALL NOT be switched by it. While the frame may not modify system settings, the light SHALL only switch on and off.
 
 #### Scenario: Dim from an automation
 - **WHEN** an automation turns the display light on with a brightness of 50 % at noon
@@ -42,12 +42,16 @@ While the display is on, the light SHALL show the brightness the frame reports. 
 - **WHEN** the schedule dims the display to 20 % in the evening
 - **THEN** the light shows 20 % and its attribute for dimming is on
 
+#### Scenario: Woken display dimmed
+- **WHEN** someone woke the display at night and an automation sets the light to 30 %
+- **THEN** the display is at 30 % and still goes off when the wake ends
+
 #### Scenario: Without permission
 - **WHEN** the frame may not modify system settings
 - **THEN** the light offers only on and off, and switching the display still works
 
 ### Requirement: Former display switch
-When a frame's entities are set up, the integration SHALL remove the display switch of earlier versions of the integration, so that the display has only the light.
+When the integration loads a frame that was added with an earlier version, it SHALL remove that version's display switch once, so that the display has only the light, also while the frame does not answer or is outdated.
 
 #### Scenario: Update from a version with the switch
 - **WHEN** the user updates the integration on a Home Assistant that had `switch.photo_frame_display` and restarts
