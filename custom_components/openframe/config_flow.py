@@ -61,6 +61,8 @@ class OpenframeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Add, re-pair and move openframe frames."""
 
     VERSION = 1
+    # 2: the display is a light; the migration removes the switch of minor version 1
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         self._host = ""
@@ -157,16 +159,27 @@ class OpenframeConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self._revoke(client, client_id)
                 if err.status == 404:
                     # An app before the slideshow API
-                    return self.async_abort(
-                        reason="outdated_frame",
-                        description_placeholders={"version": MIN_OPENFRAME_VERSION},
-                    )
+                    return self._outdated()
                 return self.async_abort(
                     reason="unexpected_answer", description_placeholders={"message": err.message}
                 )
         except OpenframeConnectionError:
             await self._revoke(client, client_id)
             return self.async_abort(reason="cannot_connect")
+        try:
+            display = await client.get_display()
+        except OpenframeResponseError as err:
+            await self._revoke(client, client_id)
+            return self.async_abort(
+                reason="unexpected_answer", description_placeholders={"message": err.message}
+            )
+        except OpenframeConnectionError:
+            await self._revoke(client, client_id)
+            return self.async_abort(reason="cannot_connect")
+        if "brightness" not in display:
+            # An app before openframe 0.6.0
+            await self._revoke(client, client_id)
+            return self._outdated()
         data = {
             CONF_HOST: self._host,
             CONF_PORT: self._port,
@@ -176,6 +189,11 @@ class OpenframeConfigFlow(ConfigFlow, domain=DOMAIN):
         if self.source == SOURCE_REAUTH:
             return self.async_update_reload_and_abort(self._get_reauth_entry(), data_updates=data)
         return self.async_create_entry(title=self._info["name"], data=data)
+
+    def _outdated(self) -> ConfigFlowResult:
+        return self.async_abort(
+            reason="outdated_frame", description_placeholders={"version": MIN_OPENFRAME_VERSION}
+        )
 
     @staticmethod
     async def _revoke(client: OpenframeClient, client_id: str) -> None:

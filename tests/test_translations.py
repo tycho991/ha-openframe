@@ -12,7 +12,7 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openframe.const import DOMAIN
-from tests.conftest import tick
+from tests.conftest import mock_entry, tick
 from tests.fake_frame import FRAME_ID, FakeFrame
 
 ROOT = Path(__file__).parent.parent
@@ -65,3 +65,21 @@ async def test_readme_lists_every_entity_key(
         key = re.sub(r"^(sync|last_sync|sync_problem)_nc1$", r"\1_<source>", key)
         assert key in listed, f"{registry_entry.domain} {key} is missing in the README"
     assert {e.platform for e in entries} == {DOMAIN}
+
+
+async def test_readme_examples_use_existing_entities_and_actions(
+    hass: HomeAssistant, frame: FakeFrame, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.info["name"] = "Photo frame"
+    config_entry = mock_entry(frame)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    readme = (ROOT / "README.md").read_text()
+    entities = readme.split("## Entities")[1].split("\n## ")[0]
+    examples = readme.split("## Automation examples")[1].split("\n## ")[0]
+    # The section on updating from 0.1.0 names the removed switch on purpose
+    for found in set(re.findall(r"\b([a-z_]+\.photo_frame_[a-z_]+)", entities + examples)):
+        assert hass.states.get(found) is not None, f"{found} does not exist"
+    for domain, service in set(re.findall(r"- action: ([a-z_]+)\.([a-z_]+)", examples)):
+        assert hass.services.has_service(domain, service), f"{domain}.{service} does not exist"

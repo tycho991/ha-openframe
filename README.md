@@ -8,8 +8,9 @@ All traffic stays on the local network: Home Assistant polls the frame.
 ## Requirements
 
 - Home Assistant 2026.10 or later.
-- openframe 0.5.0 or later on the frame. Older frames lack the slideshow API and are refused
-  during setup.
+- openframe 0.6.0 or later on the frame. Older frames lack the brightness of the display and
+  are refused during setup; a frame that is already added gets a repair issue until it is
+  updated.
 
 ## Installation
 
@@ -24,6 +25,20 @@ All traffic stays on the local network: Home Assistant polls the frame.
 Copy `custom_components/openframe` from a release into the `custom_components` folder of your
 Home Assistant configuration and restart Home Assistant.
 
+### Updating from 0.1.0
+
+Since 0.2.0 the display is a light with brightness instead of a switch: `switch.<frame>_display`
+is removed and `light.<frame>_display` takes its place, for example `light.photo_frame_display`.
+Home Assistant cannot move an entity from one domain to another, so a name, area or icon given to
+the switch does not carry over.
+
+1. Update the frames to openframe 0.6.0 first, with the `app` update entity of 0.1.0 or in the
+   frame's web UI.
+2. Then update the integration and restart Home Assistant.
+3. Search your automations, scripts, scenes and dashboards for `switch.photo_frame_display` (with
+   your frame's name) and replace it with `light.photo_frame_display`; the actions
+   `switch.turn_on` and `switch.turn_off` become `light.turn_on` and `light.turn_off`.
+
 ## Adding a frame
 
 1. Settings › Devices & services › Add integration › openframe.
@@ -37,12 +52,12 @@ Assistant revokes its pairing on the frame.
 
 ## Entities
 
-Entity IDs follow the frame's name, for example `switch.photo_frame_display` for a frame named
+Entity IDs follow the frame's name, for example `light.photo_frame_display` for a frame named
 "Photo frame". The key is the end of each entity's unique ID.
 
 | Key | Platform | What it does |
 |---|---|---|
-| `display` | switch | Display on or off; attributes `cause` (`schedule`, `manual`, `wake`, `none`) and `next_change`. Unavailable while openframe is not a device administrator. |
+| `display` | light | Display on or off and its brightness; attributes `cause` (`schedule`, `manual`, `wake`, `none`), `next_change`, `dimmed` (the display schedule dims now) and `auto` (Android's automatic brightness is on). A brightness outside a dim period becomes the frame's fixed level. Only on and off while openframe may not modify system settings; switching fails while openframe is not a device administrator; unavailable when neither is allowed. |
 | `slideshow` | switch | On while the slideshow plays, off while it is paused. |
 | `next_photo`, `previous_photo` | button | Step through the slideshow. Fails while the display is off. |
 | `current_photo` | image | The photo as the frame shows it. |
@@ -53,6 +68,8 @@ Entity IDs follow the frame's name, for example `switch.photo_frame_display` for
 | `transition` | select | `fade`, `slide`, `none`. |
 | `fill_mode` | select | `auto`, `fill`, `fit`. |
 | `orientation` | select | `landscape`, `portrait`. |
+| `brightness_mode` | select | `system` (Android's setting), `manual` (a fixed level, set with the light), `auto` (Android's automatic brightness, only on a frame with a light sensor). |
+| `dim_level` | number | Brightness in percent while the display schedule dims (1 to 100); the dim times are set in the web UI. |
 | `clock` | switch | Clock on the frame on or off. |
 | `display_schedule` | switch | Display schedule on or off; its times are set in the web UI. Unavailable while openframe is not a device administrator. |
 | `auto_update_check` | switch | The frame checks for a new version by itself. |
@@ -84,18 +101,47 @@ automation:
         entity_id: zone.home
         to: "0"
     actions:
-      - action: switch.turn_off
+      - action: light.turn_off
         target:
-          entity_id: switch.photo_frame_display
+          entity_id: light.photo_frame_display
   - alias: Frame on when back
     triggers:
       - trigger: numeric_state
         entity_id: zone.home
         above: 0
     actions:
-      - action: switch.turn_on
+      - action: light.turn_on
         target:
-          entity_id: switch.photo_frame_display
+          entity_id: light.photo_frame_display
+```
+
+Dim the frame while a movie runs, and back to full brightness afterwards. `light.turn_on` also
+switches a display that is off on, so the condition leaves a frame that is off alone. A brightness
+from Home Assistant outside a dim period becomes the frame's fixed level; for dimming every
+evening, set a dim time in the frame's web UI and the `dim_level` instead.
+
+```yaml
+automation:
+  - alias: Dim the frame for the movie
+    triggers:
+      - trigger: state
+        entity_id: media_player.tv
+        to: playing
+        id: start
+      - trigger: state
+        entity_id: media_player.tv
+        from: playing
+        id: end
+    conditions:
+      - condition: state
+        entity_id: light.photo_frame_display
+        state: "on"
+    actions:
+      - action: light.turn_on
+        target:
+          entity_id: light.photo_frame_display
+        data:
+          brightness_pct: "{{ 20 if trigger.id == 'start' else 100 }}"
 ```
 
 Pause the slideshow while the TV runs:

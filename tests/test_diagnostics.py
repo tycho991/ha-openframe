@@ -30,7 +30,7 @@ async def test_diagnostics(hass: HomeAssistant, frame: FakeFrame) -> None:
     assert diagnostics["entry"][CONF_TOKEN] == "**REDACTED**"
     assert diagnostics["entry"][CONF_HOST] == "**REDACTED**"
     assert diagnostics["data"]["sources"][0]["settings"]["folder"] == "**REDACTED**"
-    assert diagnostics["data"]["info"]["appVersion"] == "0.5.0"
+    assert diagnostics["data"]["info"]["appVersion"] == "0.6.0"
     assert diagnostics["data"]["state"]["libraryVersion"] == frame.library_version
     dump = json.dumps(diagnostics)
     for private in (

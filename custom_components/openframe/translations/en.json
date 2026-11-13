@@ -92,12 +92,40 @@
         "name": "Photo on screen"
       }
     },
+    "light": {
+      "display": {
+        "name": "Display",
+        "state_attributes": {
+          "cause": {
+            "name": "Cause",
+            "state": {
+              "schedule": "Schedule",
+              "manual": "Manual",
+              "wake": "Woken",
+              "none": "None"
+            }
+          },
+          "next_change": {
+            "name": "Next change"
+          },
+          "dimmed": {
+            "name": "Dimmed by the schedule"
+          },
+          "auto": {
+            "name": "Automatic brightness"
+          }
+        }
+      }
+    },
     "number": {
       "interval": {
         "name": "Interval"
       },
       "transition_duration": {
         "name": "Transition duration"
+      },
+      "dim_level": {
+        "name": "Dimmed brightness"
       }
     },
     "select": {
@@ -129,6 +157,14 @@
         "state": {
           "landscape": "Landscape",
           "portrait": "Portrait"
+        }
+      },
+      "brightness_mode": {
+        "name": "Brightness mode",
+        "state": {
+          "system": "Android's setting",
+          "manual": "Fixed level",
+          "auto": "Automatic (light sensor)"
         }
       }
     },
@@ -178,23 +214,6 @@
       }
     },
     "switch": {
-      "display": {
-        "name": "Display",
-        "state_attributes": {
-          "cause": {
-            "name": "Cause",
-            "state": {
-              "schedule": "Schedule",
-              "manual": "Manual",
-              "wake": "Woken",
-              "none": "None"
-            }
-          },
-          "next_change": {
-            "name": "Next change"
-          }
-        }
-      },
       "slideshow": {
         "name": "Slideshow"
       },
@@ -235,6 +254,9 @@
     "display_unavailable": {
       "message": "The frame cannot switch its display: openframe is not a device administrator."
     },
+    "brightness_unavailable": {
+      "message": "The frame may not change its brightness. Allow it in the device menu on the frame."
+    },
     "safe_mode": {
       "message": "The frame is in safe mode."
     },
@@ -263,7 +285,7 @@
   "issues": {
     "outdated_frame": {
       "title": "{name} needs a newer openframe",
-      "description": "{name} no longer offers an endpoint this integration needs, for example because an older openframe was installed on it. Update the frame to openframe {version} or later; Home Assistant connects again by itself."
+      "description": "{name} lacks something this integration needs, for example because an older openframe was installed on it. Update the frame to openframe {version} or later; Home Assistant connects again by itself."
     }
   }
 }

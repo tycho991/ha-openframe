@@ -106,7 +106,7 @@ async def test_library_change_reads_albums_and_totals(
 async def test_app_update_reads_the_info(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
-    frame.info["appVersion"] = "0.6.0"
+    frame.info["appVersion"] = "0.7.0"
     frame.reset_requests()
     await tick(hass, freezer)
     assert frame.requests == FAST + APP

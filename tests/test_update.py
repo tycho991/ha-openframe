@@ -17,7 +17,7 @@ from tests.conftest import entity_id, tick
 from tests.fake_frame import NOW, FakeFrame
 from tests.helpers import call
 
-RELEASE = {"version": "0.6.0", "notes": "Faster start.\n<b>not html</b>", "publishedAt": NOW}
+RELEASE = {"version": "0.7.0", "notes": "Faster start.\n<b>not html</b>", "publishedAt": NOW}
 
 
 async def test_update_ready(
@@ -29,7 +29,7 @@ async def test_update_ready(
     app = entity_id(hass, "update", "app")
     state = hass.states.get(app)
     assert state.state == STATE_ON
-    assert state.attributes[ATTR_LATEST_VERSION] == "0.6.0"
+    assert state.attributes[ATTR_LATEST_VERSION] == "0.7.0"
     assert state.attributes[ATTR_SUPPORTED_FEATURES] & UpdateEntityFeature.INSTALL
     entity = hass.data[UPDATES].get_entity(app)
     notes = await entity.async_release_notes()
@@ -57,7 +57,7 @@ async def test_installing_not_allowed(
     frame.update.update(phase="ready", latest=RELEASE, installAllowed=False)
     await tick(hass, freezer, 60)
     state = hass.states.get(entity_id(hass, "update", "app"))
-    assert state.attributes[ATTR_LATEST_VERSION] == "0.6.0"
+    assert state.attributes[ATTR_LATEST_VERSION] == "0.7.0"
     assert not state.attributes[ATTR_SUPPORTED_FEATURES] & UpdateEntityFeature.INSTALL
 
 
@@ -108,5 +108,5 @@ async def test_check_now(
     )
     await tick(hass, freezer)  # every tick while checking
     state = hass.states.get(entity_id(hass, "update", "app"))
-    assert state.attributes[ATTR_LATEST_VERSION] == "0.6.0"
+    assert state.attributes[ATTR_LATEST_VERSION] == "0.7.0"
     assert state.state == STATE_ON

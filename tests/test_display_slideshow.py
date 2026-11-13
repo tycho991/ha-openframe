@@ -1,4 +1,4 @@
-"""Display switch, slideshow controls and fresh state after a command (`frame-entities`)."""
+"""Display light, slideshow controls and fresh state after a command (`frame-entities`)."""
 
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ async def photos(hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, 
 async def test_display_off_from_an_automation(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
 ) -> None:
-    """frame-entities › Display switch › Display off from an automation."""
-    display = entity_id(hass, "switch", "display")
-    await call(hass, "switch", "turn_off", display)
+    """frame-entities › Display light › Display off from an automation."""
+    display = entity_id(hass, "light", "display")
+    await call(hass, "light", "turn_off", display)
     assert frame.display["on"] is False
     state = hass.states.get(display)
     assert state.state == STATE_OFF
@@ -37,10 +37,26 @@ async def test_display_off_from_an_automation(
 async def test_no_device_administrator(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
-    """frame-entities › Display switch › No device administrator."""
+    """frame-entities › Display light › No device administrator."""
+    display = entity_id(hass, "light", "display")
     frame.display.update(available=False, cause="none")
     await tick(hass, freezer)
-    assert hass.states.get(entity_id(hass, "switch", "display")).state == STATE_UNAVAILABLE
+    assert hass.states.get(display).state == STATE_ON
+    with pytest.raises(HomeAssistantError) as caught:
+        await call(hass, "light", "turn_off", display)
+    assert caught.value.translation_key == "display_unavailable"
+    assert frame.display["on"] is True
+    assert hass.states.get(display).state == STATE_ON
+
+
+async def test_nothing_to_control(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › Display light › Nothing to control."""
+    frame.display.update(available=False, cause="none")
+    frame.display["brightness"]["available"] = False
+    await tick(hass, freezer)
+    assert hass.states.get(entity_id(hass, "light", "display")).state == STATE_UNAVAILABLE
 
 
 async def test_pause_from_home_assistant(
@@ -70,7 +86,7 @@ async def test_next_photo_at_night(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, photos: None
 ) -> None:
     """frame-entities › Slideshow controls › Next photo at night."""
-    await call(hass, "switch", "turn_off", entity_id(hass, "switch", "display"))
+    await call(hass, "light", "turn_off", entity_id(hass, "light", "display"))
     with pytest.raises(HomeAssistantError) as caught:
         await call(hass, "button", "press", entity_id(hass, "button", "next_photo"))
     assert caught.value.translation_key == "display_off"

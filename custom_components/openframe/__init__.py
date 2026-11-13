@@ -6,6 +6,7 @@ import logging
 
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -20,6 +21,7 @@ PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.IMAGE,
+    Platform.LIGHT,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
@@ -38,6 +40,23 @@ def _client(hass: HomeAssistant, entry: OpenframeConfigEntry) -> OpenframeClient
         entry.data[CONF_PORT],
         entry.data[CONF_TOKEN],
     )
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: OpenframeConfigEntry) -> bool:
+    """Bring an entry of an earlier version of the integration up to date."""
+    if entry.version > 1:
+        return False
+    if entry.minor_version < 2:
+        # Up to 0.1.0 the display was a switch with the unique ID the light has now; Home
+        # Assistant cannot move an entity to another domain, so the switch goes. This runs
+        # before the setup, also for a frame that does not answer or is still outdated.
+        registry = er.async_get(hass)
+        if switch := registry.async_get_entity_id(
+            Platform.SWITCH, DOMAIN, f"{entry.unique_id}_display"
+        ):
+            registry.async_remove(switch)
+        hass.config_entries.async_update_entry(entry, minor_version=2)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: OpenframeConfigEntry) -> bool:

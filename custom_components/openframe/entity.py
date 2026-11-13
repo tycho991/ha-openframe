@@ -21,6 +21,7 @@ KNOWN_REFUSALS = frozenset(
     {
         "display_off",
         "display_unavailable",
+        "brightness_unavailable",
         "safe_mode",
         "update_not_ready",
         "install_not_allowed",
@@ -96,10 +97,12 @@ class OpenframeEntity(CoordinatorEntity[OpenframeCoordinator]):
                 raise HomeAssistantError(
                     translation_domain=DOMAIN, translation_key=err.code
                 ) from err
+            # A refused value names its reason per field; the message itself is generic then
+            reason = "; ".join(err.fields.values()) if err.fields else err.message
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="refused",
-                translation_placeholders={"message": err.message},
+                translation_placeholders={"message": reason},
             ) from err
 
 

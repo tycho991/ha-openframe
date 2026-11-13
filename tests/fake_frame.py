@@ -6,7 +6,10 @@ behaviour for the scenarios of the specs. Every request and every response is va
 operation and the offending field, and the ``frame`` fixture fails the test on it.
 
 Switches change how the frame behaves: ``safe_mode``, ``display["available"]`` (device
-administrator), ``outdated`` (an app before the slideshow API, answering 404 for ``/slideshow``),
+administrator), ``display["brightness"]`` (``available``: the permission to modify system
+settings, ``autoSupported``: a light sensor, ``dimmed``: a dim period of the schedule),
+``outdated`` (an app before the slideshow API, answering 404 for ``/slideshow``),
+``before_brightness`` (an app before openframe 0.6.0, whose display state has no brightness),
 ``revoke_all()`` (every token rejected), ``unreachable`` (connections are dropped) and
 ``not_json`` (an answer that is not JSON) and ``delay`` (a slow answer).
 """
@@ -43,6 +46,7 @@ ERROR_MESSAGES = {
     "pairing_locked": "Too many failed attempts.",
     "not_found": "Not found.",
     "display_unavailable": "openframe is not a device administrator.",
+    "brightness_unavailable": "openframe may not modify system settings.",
     "display_off": "The display is off.",
     "safe_mode": "The frame is in safe mode.",
     "not_in_safe_mode": "The frame is not in safe mode.",
@@ -114,7 +118,7 @@ class FakeFrame:
         default_factory=lambda: {
             "id": FRAME_ID,
             "name": "Test frame",
-            "appVersion": "0.5.0",
+            "appVersion": "0.6.0",
             "androidVersion": "6.0.1",
             "screen": {"width": 1024, "height": 600},
             "apiVersion": 1,
@@ -140,15 +144,29 @@ class FakeFrame:
             "cacheBudgetMb": 500,
             "displaySchedule": {
                 "enabled": False,
-                "weekdays": {"on": "07:00", "off": "22:00"},
-                "weekend": {"on": "08:00", "off": "23:00"},
+                "weekdays": {"on": "07:00", "off": "22:00", "dim": None},
+                "weekend": {"on": "08:00", "off": "23:00", "dim": None},
                 "wakeMinutes": 5,
+                "dimLevel": 20,
             },
             "autoUpdateCheck": True,
+            "brightness": {"mode": "system", "level": 80},
         }
     )
     display: dict[str, Any] = field(
-        default_factory=lambda: {"available": True, "on": True, "cause": "none", "nextChange": None}
+        default_factory=lambda: {
+            "available": True,
+            "on": True,
+            "cause": "none",
+            "nextChange": None,
+            "brightness": {
+                "available": True,
+                "autoSupported": True,
+                "level": 80,
+                "auto": False,
+                "dimmed": False,
+            },
+        }
     )
     photos: list[FakePhoto] = field(default_factory=list)
     # Albums with a setting of their own: hidden (True) or shown (False)
@@ -156,7 +174,7 @@ class FakeFrame:
     sources: list[dict[str, Any]] = field(default_factory=list)
     update: dict[str, Any] = field(
         default_factory=lambda: {
-            "installedVersion": "0.5.0",
+            "installedVersion": "0.6.0",
             "phase": "idle",
             "latest": None,
             "lastCheck": None,
@@ -169,6 +187,7 @@ class FakeFrame:
     transition_fallback: bool = False
     safe_mode: bool = False
     outdated: bool = False
+    before_brightness: bool = False
     unreachable: bool = False
     not_json: bool = False
     # Seconds the frame waits before it answers
@@ -429,6 +448,9 @@ class FakeFrame:
         if self.outdated and path == "/slideshow":
             # An app before the slideshow API: the path does not exist in its contract
             return error(404, "not_found")
+        if self.before_brightness and (request.method, path) == ("GET", "/display"):
+            # An app before openframe 0.6.0: its contract has no brightness in the display state
+            return web.json_response({k: v for k, v in self.display.items() if k != "brightness"})
         openapi_request = AIOHTTPOpenAPIWebRequest(request, body=body or None)
         try:
             contract().validate_request(openapi_request)
@@ -479,10 +501,7 @@ class FakeFrame:
             case ("GET", ["display"]):
                 return web.json_response(self.display)
             case ("PUT", ["display"]):
-                if not self.display["available"]:
-                    return error(409, "display_unavailable")
-                self.display.update(on=body["on"], cause="manual")
-                return web.json_response(self.display)
+                return self._set_display(body)
             case ("GET", ["slideshow"]):
                 if self.reject_slideshow:
                     return error(401, "unauthorized")
@@ -596,6 +615,34 @@ class FakeFrame:
             self.paused = action == "pause"
         return web.json_response(self.slideshow_json())
 
+    def _set_display(self, body: dict[str, Any]) -> web.Response:
+        # The whole request is checked before it acts, in openframe's order
+        brightness = self.display["brightness"]
+        if "on" in body and not self.display["available"]:
+            return error(409, "display_unavailable")
+        if "brightness" in body and not brightness["available"]:
+            return error(409, "brightness_unavailable")
+        if "on" in body:
+            self.display.update(on=body["on"], cause="manual")
+        if "brightness" in body:
+            brightness.update(level=body["brightness"], auto=False)
+            if not brightness["dimmed"]:
+                # Outside a dim period the level becomes the stored brightness
+                self.settings["brightness"] = {"mode": "manual", "level": body["brightness"]}
+                self.settings_version += 1
+        return web.json_response(self.display)
+
+    def _apply_brightness(self) -> None:
+        """Android's brightness after a change of the setting, outside a dim period."""
+        brightness = self.display["brightness"]
+        setting = self.settings["brightness"]
+        if brightness["dimmed"] or not brightness["available"]:
+            return
+        if setting["mode"] == "manual":
+            brightness.update(level=setting["level"], auto=False)
+        elif setting["mode"] == "auto":
+            brightness["auto"] = True
+
     def _patch_settings(self, body: dict[str, Any]) -> web.Response:
         merged = copy.deepcopy(self.settings)
         fields: dict[str, str] = {}
@@ -612,10 +659,31 @@ class FakeFrame:
             fields["transitionDurationMs"] = "Must be between 0 and 5000."
         if merged["displaySchedule"]["enabled"] and not self.display["available"]:
             fields["displaySchedule.enabled"] = "openframe is not a device administrator."
+        if not 1 <= merged["displaySchedule"]["dimLevel"] <= 100:
+            fields["displaySchedule.dimLevel"] = "Must be between 1 and 100."
+        brightness = self.display["brightness"]
+        mode = merged["brightness"]["mode"]
+        if mode not in ("system", "manual", "auto"):
+            fields["brightness.mode"] = "Must be system, manual or auto."
+        elif mode not in (self.settings["brightness"]["mode"], "system"):
+            # Only a change of the mode is checked, as openframe does
+            if not brightness["available"]:
+                fields["brightness.mode"] = (
+                    "openframe may not modify system settings: allow it in the device menu on "
+                    "the frame"
+                )
+            elif mode == "auto" and not brightness["autoSupported"]:
+                fields["brightness.mode"] = (
+                    "The device has no light sensor for automatic brightness"
+                )
+        if not 1 <= merged["brightness"]["level"] <= 100:
+            fields["brightness.level"] = "Must be between 1 and 100."
         if fields:
             return error(400, "validation_failed", fields)
         self.settings = merged
         self.settings_version += 1
+        if "brightness" in body:
+            self._apply_brightness()
         return web.json_response(self.settings)
 
     def _photos(self, request: web.Request) -> web.Response:
