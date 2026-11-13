@@ -26,7 +26,7 @@
 ## 6. Devices
 
 - [x] 6.1 Rows in `../openframe-private/DEVICE_TEST.md` with their references: the light on and off and at 30 % from Home Assistant on both frames (`frame-entities` › Display light › Display off from an automation, › Brightness of the display light › Dim from an automation), the light in the evening while the schedule dims (› Dimmed by the schedule), the update from ha-openframe 0.1.0 on the owner's Home Assistant (› Former display switch › Update from a version with the switch); verify: the rows exist with their references
-- [ ] 6.2 Run the rows of 6.1; ask before any persistent change on a frame or on the owner's Home Assistant; verify: results entered, a finding in `../openframe-private/FINDINGS.md` for anything that differs
+- [x] 6.2 Run the rows of 6.1; ask before any persistent change on a frame or on the owner's Home Assistant; verify: results entered, a finding in `../openframe-private/FINDINGS.md` for anything that differs
 
 ## 7. Integration
 
