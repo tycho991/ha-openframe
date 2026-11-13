@@ -14,7 +14,17 @@ All traffic stays on the local network: Home Assistant polls the frame.
 
 ## Installation
 
-### HACS
+### Marketplace (Home Assistant 2026.11 and later)
+
+Home Assistant 2026.11 replaced HACS with its built-in Marketplace.
+
+1. Settings › Marketplace › Add from link, enter `tycho991/ha-openframe` and, if asked, choose
+   the type Integration.
+2. Open "openframe", install the latest version and restart Home Assistant.
+
+New releases then appear under Settings › Updates.
+
+### HACS (Home Assistant 2026.10)
 
 1. In HACS, open the menu › Custom repositories, add `https://github.com/tycho991/ha-openframe`
    with the type Integration.
@@ -23,7 +33,8 @@ All traffic stays on the local network: Home Assistant polls the frame.
 ### By hand
 
 Copy `custom_components/openframe` from a release into the `custom_components` folder of your
-Home Assistant configuration and restart Home Assistant.
+Home Assistant configuration and restart Home Assistant. A copy by hand gets no update entity;
+installing through the Marketplace later replaces it in the same folder.
 
 ### Updating from 0.1.0
 
@@ -34,7 +45,8 @@ the switch does not carry over.
 
 1. Update the frames to openframe 0.6.0 first, with the `app` update entity of 0.1.0 or in the
    frame's web UI.
-2. Then update the integration and restart Home Assistant.
+2. Then update the integration (Settings › Updates; after a copy by hand, install it through the
+   Marketplace) and restart Home Assistant.
 3. Search your automations, scripts, scenes and dashboards for `switch.photo_frame_display` (with
    your frame's name) and replace it with `light.photo_frame_display`; the actions
    `switch.turn_on` and `switch.turn_off` become `light.turn_on` and `light.turn_off`.
