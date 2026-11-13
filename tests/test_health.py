@@ -66,10 +66,10 @@ async def test_frame_unreachable(
     hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
 ) -> None:
     """frame-entities › Errors of commands › Frame unreachable."""
-    display = entity_id(hass, "switch", "display")
+    display = entity_id(hass, "light", "display")
     frame.unreachable = True
     with pytest.raises(HomeAssistantError) as caught:
-        await call(hass, "switch", "turn_off", display)
+        await call(hass, "light", "turn_off", display)
     assert caught.value.translation_key == "no_answer"
     assert str(caught.value) == "The frame does not answer"
     assert hass.states.get(display).state == STATE_ON
@@ -80,7 +80,7 @@ async def test_refused_command(
 ) -> None:
     """frame-entities › Errors of commands: a refusal fails with a translated message."""
     frame.update.update(
-        phase="ready", latest={"version": "0.6.0", "notes": "", "publishedAt": None}
+        phase="ready", latest={"version": "0.7.0", "notes": "", "publishedAt": None}
     )
     await tick(hass, freezer, 60)
     # The download is dropped on the frame before the next poll
@@ -103,7 +103,10 @@ async def test_unknown_refusal_names_the_frame_message(
         # The frame refuses the schedule without device administrator rights (400 with a field)
         await call(hass, "switch", "turn_on", entity_id(hass, "switch", "display_schedule"))
     assert caught.value.translation_key == "refused"
-    assert caught.value.translation_placeholders == {"message": "Invalid request."}
+    # The reason of the refused field, not the generic message of the validation error
+    assert caught.value.translation_placeholders == {
+        "message": "openframe is not a device administrator."
+    }
 
 
 async def test_revoked_token_on_a_command_starts_reauthentication(
@@ -111,7 +114,7 @@ async def test_revoked_token_on_a_command_starts_reauthentication(
 ) -> None:
     frame.revoke_all()
     with pytest.raises(HomeAssistantError) as caught:
-        await call(hass, "switch", "turn_off", entity_id(hass, "switch", "display"))
+        await call(hass, "light", "turn_off", entity_id(hass, "light", "display"))
     assert caught.value.translation_key == "unauthorized"
     await hass.async_block_till_done()
     [flow] = hass.config_entries.flow.async_progress_by_handler("openframe")

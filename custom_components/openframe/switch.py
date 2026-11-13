@@ -1,4 +1,4 @@
-"""Switches: display, slideshow, settings and one per album."""
+"""Switches: slideshow, settings and one per album."""
 
 from __future__ import annotations
 
@@ -23,7 +23,6 @@ async def async_setup_entry(
     coordinator = entry.runtime_data
     async_add_entities(
         [
-            DisplaySwitch(coordinator),
             SlideshowSwitch(coordinator),
             *(SettingSwitch(coordinator, d) for d in SETTING_SWITCHES),
         ]
@@ -34,35 +33,6 @@ async def async_setup_entry(
         lambda data: (album["name"] for album in data.albums),
         lambda name: [AlbumSwitch(coordinator, name)],
     )
-
-
-class DisplaySwitch(OpenframeEntity, SwitchEntity):
-    """The display, with why it is in its state and when it changes next by itself."""
-
-    def __init__(self, coordinator: OpenframeCoordinator) -> None:
-        super().__init__(coordinator, "display")
-
-    @property
-    def available(self) -> bool:
-        # Without device administrator rights the frame cannot switch its display
-        return super().available and self.data.display["available"]
-
-    @property
-    def is_on(self) -> bool:
-        return self.data.display["on"]
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return {"cause": self.data.display["cause"], "next_change": self.data.display["nextChange"]}
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        await self._switch(True)
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        await self._switch(False)
-
-    async def _switch(self, on: bool) -> None:
-        self.coordinator.set_display(await self.command(self.coordinator.client.set_display(on)))
 
 
 class SlideshowSwitch(OpenframeEntity, SwitchEntity):

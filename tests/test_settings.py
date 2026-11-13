@@ -6,7 +6,7 @@ import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -77,6 +77,14 @@ async def test_fill_mode(hass: HomeAssistant, frame: FakeFrame, entry: MockConfi
             {"option": "portrait"},
             {"orientation": "portrait"},
         ),
+        (
+            "select",
+            "brightness_mode",
+            "select_option",
+            {"option": "manual"},
+            {"brightness": {"mode": "manual"}},
+        ),
+        ("number", "dim_level", "set_value", {"value": 25}, {"displaySchedule": {"dimLevel": 25}}),
         ("switch", "clock", "turn_on", {}, {"clock": {"enabled": True}}),
         ("switch", "display_schedule", "turn_on", {}, {"displaySchedule": {"enabled": True}}),
         ("switch", "auto_update_check", "turn_off", {}, {"autoUpdateCheck": False}),
@@ -116,3 +124,71 @@ async def test_display_schedule_unavailable_without_device_administrator(
     await tick(hass, freezer)
     state = hass.states.get(entity_id(hass, "switch", "display_schedule"))
     assert state.state == STATE_UNAVAILABLE
+
+
+# -- Brightness settings ----------------------------------------------------------------------
+
+
+async def test_automatic_from_an_automation(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › Brightness settings as configuration entities › Automatic from an
+    automation."""
+    mode = entity_id(hass, "select", "brightness_mode")
+    await call(hass, "select", "select_option", mode, option="auto")
+    assert patches(frame) == [{"brightness": {"mode": "auto"}}]
+    assert frame.display["brightness"]["auto"] is True
+    await tick(hass, freezer)
+    assert hass.states.get(mode).state == "auto"
+    assert hass.states.get(entity_id(hass, "light", "display")).attributes["auto"] is True
+
+
+async def test_no_light_sensor(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › Brightness settings as configuration entities › No light sensor."""
+    mode = entity_id(hass, "select", "brightness_mode")
+    assert hass.states.get(mode).attributes["options"] == ["system", "manual", "auto"]
+    frame.display["brightness"]["autoSupported"] = False
+    await tick(hass, freezer)
+    assert hass.states.get(mode).attributes["options"] == ["system", "manual"]
+
+
+async def test_stored_automatic_stays_offered(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.settings["brightness"]["mode"] = "auto"
+    frame.settings_version += 1
+    frame.display["brightness"]["autoSupported"] = False
+    await tick(hass, freezer)
+    state = hass.states.get(entity_id(hass, "select", "brightness_mode"))
+    assert state.state == "auto"
+    assert "auto" in state.attributes["options"]
+
+
+async def test_fixed_level_without_permission(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › Brightness settings as configuration entities › Fixed level without
+    permission."""
+    mode = entity_id(hass, "select", "brightness_mode")
+    frame.display["brightness"]["available"] = False
+    await tick(hass, freezer)
+    with pytest.raises(HomeAssistantError) as caught:
+        await call(hass, "select", "select_option", mode, option="manual")
+    assert caught.value.translation_key == "refused"
+    assert "may not modify system settings" in str(caught.value)
+    assert frame.settings["brightness"]["mode"] == "system"
+    assert hass.states.get(mode).state == "system"
+
+
+async def test_dim_level(hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry) -> None:
+    """frame-entities › Brightness settings as configuration entities › Dim level."""
+    schedule = dict(frame.settings["displaySchedule"])
+    dim_level = entity_id(hass, "number", "dim_level")
+    state = hass.states.get(dim_level)
+    assert (state.state, state.attributes["min"], state.attributes["max"]) == ("20", 1, 100)
+    await call(hass, "number", "set_value", dim_level, value=25)
+    assert patches(frame) == [{"displaySchedule": {"dimLevel": 25}}]
+    assert frame.settings["displaySchedule"] == schedule | {"dimLevel": 25}
+    assert hass.states.get(dim_level).state == "25"

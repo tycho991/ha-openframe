@@ -89,8 +89,16 @@ class OpenframeClient:
     async def get_display(self) -> dict[str, Any]:
         return await self._request("GET", "/display")
 
-    async def set_display(self, on: bool) -> dict[str, Any]:
-        return await self._request("PUT", "/display", json={"on": on})
+    async def set_display(
+        self, on: bool | None = None, brightness: int | None = None
+    ) -> dict[str, Any]:
+        """Switch the display and/or set its brightness in percent; sends only what is given."""
+        body: dict[str, Any] = {}
+        if on is not None:
+            body["on"] = on
+        if brightness is not None:
+            body["brightness"] = brightness
+        return await self._request("PUT", "/display", json=body)
 
     async def get_slideshow(self) -> dict[str, Any]:
         return await self._request("GET", "/slideshow")

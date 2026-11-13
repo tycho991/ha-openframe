@@ -56,7 +56,7 @@ async def test_reading_methods(frame: FakeFrame, client: OpenframeClient) -> Non
     frame.add_photo("holiday/IMG_0042.jpg", comment="Summer 2025")
     frame.add_photo("holiday/IMG_0043.jpg", hidden=True)
     frame.add_source("nc1", "Shared photos")
-    assert (await client.get_state())["appVersion"] == "0.5.0"
+    assert (await client.get_state())["appVersion"] == "0.6.0"
     assert (await client.get_display())["on"] is True
     slideshow = await client.get_slideshow()
     assert slideshow["photo"]["comment"] == "Summer 2025"
@@ -89,6 +89,21 @@ async def test_commands(frame: FakeFrame, client: OpenframeClient) -> None:
     frame.safe_mode = True
     await client.exit_safe_mode()
     assert frame.safe_mode is False
+
+
+async def test_set_display_sends_only_what_is_given(
+    frame: FakeFrame, client: OpenframeClient
+) -> None:
+    await client.set_display(False)
+    await client.set_display(brightness=40)
+    answer = await client.set_display(True, 60)
+    assert answer["on"] is True
+    assert answer["brightness"]["level"] == 60
+    assert [body for method, path, body in frame.bodies if path == "/display"] == [
+        {"on": False},
+        {"brightness": 40},
+        {"on": True, "brightness": 60},
+    ]
 
 
 async def test_delete_client(frame: FakeFrame, session: aiohttp.ClientSession) -> None:

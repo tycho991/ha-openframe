@@ -42,7 +42,7 @@ openframe 0.6.0 (see its change `add-display-brightness`) adds to `GET /display`
 
 ### 4. Brightness mode and dim level
 
-- `select.py` gains `brightness_mode` (category config) with the options `system`, `manual`, `auto`, translated as "Android's setting", "Fixed level", "Automatic". `auto` is in `options` only while `brightness.autoSupported` is true or the stored mode is `auto`, so the current option is always offered. A choice sends `{"brightness": {"mode": <option>}}`; a 400 from the frame becomes the existing `refused` error with the frame's message.
+- `select.py` gains `brightness_mode` (category config) with the options `system`, `manual`, `auto`, translated as "Android's setting", "Fixed level", "Automatic". `auto` is in `options` only while `brightness.autoSupported` is true or the stored mode is `auto`, so the current option is always offered. A choice sends `{"brightness": {"mode": <option>}}`; a 400 from the frame becomes the existing `refused` error. openframe puts the reason of a refused value into the error's `fields` and keeps its `message` generic, so `refused` names the field reasons when there are any, for every entity, and the message otherwise.
 - `number.py` gains `dim_level` (category config, 1 to 100, step 1, `%`, mode slider) from `displaySchedule.dimLevel`, sent as `{"displaySchedule": {"dimLevel": <value>}}`.
 - `SettingNumberDescription` and `SettingSelectDescription` carry a flat `field` today. They gain `value` and `patch` lambdas like `SettingSwitchDescription`, with the flat fields expressed through them, so each entity still sends only its own field, nested or not. The select's options become a lambda of the frame data for the `auto` rule above.
 

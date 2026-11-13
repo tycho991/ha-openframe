@@ -40,6 +40,10 @@ def outdated_issue_id(entry: ConfigEntry) -> str:
     return f"outdated_frame_{entry.entry_id}"
 
 
+class FrameOutdated(Exception):
+    """The frame answers, but lacks a field the integration needs, as an app before 0.6.0."""
+
+
 @dataclass(frozen=True)
 class FrameData:
     """What the entities read, as the contract defines it."""
@@ -107,13 +111,16 @@ class OpenframeCoordinator(DataUpdateCoordinator[FrameData]):
                 # An endpoint the integration needs is gone, as after a downgrade of the app
                 self._set_outdated(True)
             raise UpdateFailed(str(err)) from err
+        except FrameOutdated as err:
+            self._set_outdated(True)
+            raise UpdateFailed(str(err)) from err
         except OpenframeError as err:
             raise UpdateFailed(str(err)) from err
         self._set_outdated(False)
         return data
 
     def _set_outdated(self, outdated: bool) -> None:
-        """Show a repair issue while the frame lacks an endpoint, and remove it once it answers."""
+        """Show the repair issue while the frame is outdated, and remove it once it is not."""
         if outdated == self._outdated:
             return
         self._outdated = outdated
@@ -140,6 +147,8 @@ class OpenframeCoordinator(DataUpdateCoordinator[FrameData]):
         previous = self.data
         state = await client.get_state()
         display = await client.get_display()
+        if "brightness" not in display:
+            raise FrameOutdated("GET /display: the display state has no brightness")
         try:
             slideshow: dict[str, Any] | None = await client.get_slideshow()
         except OpenframeResponseError as err:

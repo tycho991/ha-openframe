@@ -149,7 +149,19 @@ async def test_frame_before_the_slideshow_api(
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"code": frame.code})
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "outdated_frame"
-    assert result["description_placeholders"] == {"version": "0.5.0"}
+    assert result["description_placeholders"] == {"version": "0.6.0"}
+    assert hass.config_entries.async_entries(DOMAIN) == []
+    assert frame.clients == {}, "the new pairing is revoked again"
+
+
+async def test_frame_before_the_brightness(hass: HomeAssistant, frame: FakeFrame, no_setup) -> None:
+    """frame-connection › Minimum frame version › Frame before the brightness."""
+    frame.before_brightness = True
+    result = await start(hass, frame)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"code": frame.code})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "outdated_frame"
+    assert result["description_placeholders"] == {"version": "0.6.0"}
     assert hass.config_entries.async_entries(DOMAIN) == []
     assert frame.clients == {}, "the new pairing is revoked again"
 
@@ -165,10 +177,30 @@ async def test_frame_downgraded_after_setup(
     issue = issues.async_get_issue(DOMAIN, issue_id)
     assert issue is not None
     assert issue.translation_key == "outdated_frame"
-    assert issue.translation_placeholders == {"name": "Test frame", "version": "0.5.0"}
+    assert issue.translation_placeholders == {"name": "Test frame", "version": "0.6.0"}
     assert hass.states.get("switch.test_frame_slideshow").state == "unavailable"
 
     frame.outdated = False
+    await tick(hass, freezer)
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+    assert hass.states.get("switch.test_frame_slideshow").state == "on"
+
+
+async def test_frame_downgraded_before_the_brightness(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-connection › Minimum frame version › Frame downgraded after setup, to an openframe
+    whose display state has no brightness."""
+    issues = ir.async_get(hass)
+    issue_id = f"outdated_frame_{entry.entry_id}"
+    frame.before_brightness = True
+    await tick(hass, freezer)
+    issue = issues.async_get_issue(DOMAIN, issue_id)
+    assert issue is not None
+    assert issue.translation_placeholders == {"name": "Test frame", "version": "0.6.0"}
+    assert hass.states.get("switch.test_frame_slideshow").state == "unavailable"
+
+    frame.before_brightness = False
     await tick(hass, freezer)
     assert issues.async_get_issue(DOMAIN, issue_id) is None
     assert hass.states.get("switch.test_frame_slideshow").state == "on"

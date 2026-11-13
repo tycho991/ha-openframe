@@ -92,12 +92,40 @@
         "name": "Angezeigtes Foto"
       }
     },
+    "light": {
+      "display": {
+        "name": "Display",
+        "state_attributes": {
+          "cause": {
+            "name": "Grund",
+            "state": {
+              "schedule": "Zeitplan",
+              "manual": "Manuell",
+              "wake": "Geweckt",
+              "none": "Keiner"
+            }
+          },
+          "next_change": {
+            "name": "Nächste Änderung"
+          },
+          "dimmed": {
+            "name": "Vom Zeitplan gedimmt"
+          },
+          "auto": {
+            "name": "Automatische Helligkeit"
+          }
+        }
+      }
+    },
     "number": {
       "interval": {
         "name": "Intervall"
       },
       "transition_duration": {
         "name": "Übergangsdauer"
+      },
+      "dim_level": {
+        "name": "Gedimmte Helligkeit"
       }
     },
     "select": {
@@ -129,6 +157,14 @@
         "state": {
           "landscape": "Querformat",
           "portrait": "Hochformat"
+        }
+      },
+      "brightness_mode": {
+        "name": "Helligkeitsmodus",
+        "state": {
+          "system": "Einstellung von Android",
+          "manual": "Feste Helligkeit",
+          "auto": "Automatisch (Lichtsensor)"
         }
       }
     },
@@ -178,23 +214,6 @@
       }
     },
     "switch": {
-      "display": {
-        "name": "Display",
-        "state_attributes": {
-          "cause": {
-            "name": "Grund",
-            "state": {
-              "schedule": "Zeitplan",
-              "manual": "Manuell",
-              "wake": "Geweckt",
-              "none": "Keiner"
-            }
-          },
-          "next_change": {
-            "name": "Nächste Änderung"
-          }
-        }
-      },
       "slideshow": {
         "name": "Diashow"
       },
@@ -235,6 +254,9 @@
     "display_unavailable": {
       "message": "Der Rahmen kann sein Display nicht schalten: openframe ist kein Geräteadministrator."
     },
+    "brightness_unavailable": {
+      "message": "Der Rahmen darf seine Helligkeit nicht ändern. Erlaube es im Gerätemenü am Rahmen."
+    },
     "safe_mode": {
       "message": "Der Rahmen ist im abgesicherten Modus."
     },
@@ -263,7 +285,7 @@
   "issues": {
     "outdated_frame": {
       "title": "{name} braucht ein neueres openframe",
-      "description": "{name} bietet einen Endpunkt nicht mehr an, den diese Integration braucht, zum Beispiel weil darauf ein älteres openframe installiert wurde. Aktualisiere den Rahmen auf openframe {version} oder neuer; Home Assistant verbindet sich danach von selbst wieder."
+      "description": "Auf {name} fehlt etwas, das diese Integration braucht, zum Beispiel weil darauf ein älteres openframe installiert wurde. Aktualisiere den Rahmen auf openframe {version} oder neuer; Home Assistant verbindet sich danach von selbst wieder."
     }
   }
 }
