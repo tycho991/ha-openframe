@@ -41,7 +41,7 @@ messages. The only German texts are the translations users see in
 - Merge with `gh pr merge --squash`; release-please reads the version step from the title.
 - The version lives in `version.txt` and `custom_components/openframe/manifest.json`. Never edit
   either by hand; only the release pull request changes them. Releases are not drafts, because
-  HACS ignores drafts.
+  neither the Marketplace of Home Assistant 2026.11 and later nor HACS on 2026.10 sees drafts.
 - Merging the release pull request publishes a release. Merge it only when the owner says so.
 - Never approve a deployment and never change repository or environment settings or secrets.
 
