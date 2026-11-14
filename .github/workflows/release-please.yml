@@ -1,7 +1,7 @@
 name: release-please
 # After every push to main, release-please keeps the release pull request up to date. Merging it (only when the owner
-# says so) creates the tag vX.Y.Z and a published release; HACS offers it as an update. Releases are not drafts,
-# because HACS ignores drafts.
+# says so) creates the tag vX.Y.Z and a published release; the Marketplace of Home Assistant 2026.11 and later (and
+# HACS on 2026.10) offers it as an update. Releases are not drafts, because neither sees drafts.
 on:
   push:
     branches: [main]

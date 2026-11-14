@@ -1,5 +1,6 @@
 name: validate
-# Home Assistant's and HACS's own checks of the integration.
+# Home Assistant's own check of the integration, and HACS's check of `hacs.json` and the folder structure, which
+# the Marketplace of Home Assistant 2026.11 and later requires as well.
 on:
   push:
     branches: [main]
@@ -32,6 +33,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Checks `hacs.json` and the folder structure, which both HACS and the Marketplace read; the Marketplace
+      # documents no validator of its own.
       # The last release is from 2022; HACS documents the branch, so the digest follows main.
       - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main
         with:
