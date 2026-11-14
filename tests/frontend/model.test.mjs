@@ -113,7 +113,15 @@ test("the card picker prefers a frame that answers", () => {
 test("Photo in the frame's shape › Landscape frame", () => {
   const state = cardState(hass(), config);
   assert.equal(state.ratio, "1024 / 600");
-  assert.equal(state.photo, RECORDED.states[IMAGE].attributes.entity_picture);
+  const { entity_picture: picture } = RECORDED.states[IMAGE].attributes;
+  assert.equal(state.photo, `${picture}&state=${encodeURIComponent(RECORDED.states[IMAGE].state)}`);
+});
+
+test("a new photo on the frame changes the card's photo URL while the token stays", () => {
+  const before = cardState(hass(), config).photo;
+  const after = cardState(hass((c) => setState(c, IMAGE, "2026-11-14T20:00:00.000000+00:00")), config).photo;
+  assert.notEqual(after, before);
+  assert.ok(after.startsWith(RECORDED.states[IMAGE].attributes.entity_picture));
 });
 
 test("Photo in the frame's shape › Portrait frame", () => {

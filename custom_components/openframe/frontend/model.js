@@ -157,9 +157,12 @@ export function cardState(hass, config) {
   const width = Number(image?.attributes?.screen_width);
   const height = Number(image?.attributes?.screen_height);
   const ratio = width > 0 && height > 0 ? `${width} / ${height}` : DEFAULT_RATIO;
+  const picture = image?.attributes?.entity_picture;
+  // The picture URL keeps its token for minutes while the photo changes; the state is the time the
+  // photo changed, so adding it makes the browser load each new photo
   const photo =
-    image && !ABSENT.has(image.state) && image.attributes?.entity_picture
-      ? image.attributes.entity_picture
+    image && !ABSENT.has(image.state) && picture
+      ? `${picture}${picture.includes("?") ? "&" : "?"}state=${encodeURIComponent(image.state)}`
       : null;
 
   const displayOff = state("display")?.state === "off";
