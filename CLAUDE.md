@@ -10,7 +10,8 @@ Planning uses OpenSpec under `openspec/`; decisions are in the `design.md` of th
 Everything in the repository is written in English: OpenSpec artifacts (requirements use
 SHALL/MUST), documentation, code comments and docstrings, test names, log messages and error
 messages. The only German texts are the translations users see in
-`custom_components/openframe/translations/de.json`. Commit messages are in English as well.
+`custom_components/openframe/translations/de.json` and the dashboard card's German strings in
+`custom_components/openframe/frontend/model.js`. Commit messages are in English as well.
 
 ## Contract with openframe
 
@@ -27,6 +28,8 @@ messages. The only German texts are the translations users see in
 - `openspec validate <change>` must end with exit 0 and without warnings. Keep requirements under
   500 characters.
 - Both translation files have the same keys; a test checks this.
+- The dashboard card (`custom_components/openframe/frontend/`) is plain JavaScript without a build
+  step or npm dependency; `node --test 'tests/frontend/*.test.mjs'` must be green.
 - GitHub Actions: pin every `uses:` to a full 40-character commit SHA with a `# vX.Y.Z` comment;
   an action whose maintainers document a branch instead of releases (hassfest, `hacs/action`)
   carries the branch name (`# master`, `# main`). Give every checkout `persist-credentials: false`,

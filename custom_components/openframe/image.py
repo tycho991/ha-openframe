@@ -9,6 +9,7 @@ then.
 
 from __future__ import annotations
 
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from homeassistant.components.image import ImageEntity
@@ -35,6 +36,16 @@ def unsigned(url: str) -> str:
     return urlunsplit(parsed._replace(query=urlencode(query)))
 
 
+def screen_size(info: dict[str, Any], settings: dict[str, Any]) -> tuple[int, int]:
+    """The frame's screen in its current orientation, as width and height.
+
+    The info gives the screen in the device's natural orientation; the frame draws a landscape
+    orientation on the long edge and a portrait one on the short edge, whatever the natural one is.
+    """
+    long, short = sorted((info["screen"]["width"], info["screen"]["height"]), reverse=True)
+    return (long, short) if settings["orientation"] == "landscape" else (short, long)
+
+
 class CurrentPhotoImage(OpenframeEntity, ImageEntity):
     """The part of the photo on screen that the frame shows."""
 
@@ -50,6 +61,12 @@ class CurrentPhotoImage(OpenframeEntity, ImageEntity):
     @property
     def available(self) -> bool:
         return super().available and self.data.slideshow is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The screen format, so that a card can draw the photo in the frame's shape."""
+        width, height = screen_size(self.data.info, self.data.settings)
+        return {"screen_width": width, "screen_height": height}
 
     @callback
     def _handle_coordinator_update(self) -> None:

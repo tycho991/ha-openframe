@@ -1,0 +1,626 @@
+{
+  "recorded": "Home Assistant 2026.10.2 with ha-openframe and the fake frame of tests/fake_frame.py",
+  "language": "en",
+  "locale": {
+    "language": "en"
+  },
+  "devices": {
+    "93e6613a840fbec7637bc433e8abc019": {
+      "id": "93e6613a840fbec7637bc433e8abc019",
+      "name": "Dev frame",
+      "name_by_user": null,
+      "manufacturer": "openframe",
+      "model": "openframe",
+      "sw_version": "0.6.0"
+    }
+  },
+  "entities": {
+    "binary_sensor.dev_frame_safe_mode": {
+      "entity_id": "binary_sensor.dev_frame_safe_mode",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "safe_mode",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Safe mode"
+    },
+    "binary_sensor.dev_frame_transition_fallback": {
+      "entity_id": "binary_sensor.dev_frame_transition_fallback",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "transition_fallback",
+      "platform": "openframe",
+      "entity_category": "diagnostic",
+      "has_entity_name": true,
+      "name": "Transition fallback"
+    },
+    "button.dev_frame_next_photo": {
+      "entity_id": "button.dev_frame_next_photo",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "next_photo",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Next photo"
+    },
+    "button.dev_frame_previous_photo": {
+      "entity_id": "button.dev_frame_previous_photo",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "previous_photo",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Previous photo"
+    },
+    "button.dev_frame_check_for_update": {
+      "entity_id": "button.dev_frame_check_for_update",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "check_update",
+      "platform": "openframe",
+      "entity_category": "diagnostic",
+      "has_entity_name": true,
+      "name": "Check for update"
+    },
+    "button.dev_frame_leave_safe_mode": {
+      "entity_id": "button.dev_frame_leave_safe_mode",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "leave_safe_mode",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Leave safe mode"
+    },
+    "image.dev_frame_photo_on_screen": {
+      "entity_id": "image.dev_frame_photo_on_screen",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "current_photo",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Photo on screen"
+    },
+    "light.dev_frame_display": {
+      "entity_id": "light.dev_frame_display",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "display",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Display"
+    },
+    "number.dev_frame_interval": {
+      "entity_id": "number.dev_frame_interval",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "interval",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Interval"
+    },
+    "number.dev_frame_transition_duration": {
+      "entity_id": "number.dev_frame_transition_duration",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "transition_duration",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Transition duration"
+    },
+    "number.dev_frame_dimmed_brightness": {
+      "entity_id": "number.dev_frame_dimmed_brightness",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "dim_level",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Dimmed brightness"
+    },
+    "select.dev_frame_order": {
+      "entity_id": "select.dev_frame_order",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "order",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Order"
+    },
+    "select.dev_frame_transition": {
+      "entity_id": "select.dev_frame_transition",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "transition",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Transition"
+    },
+    "select.dev_frame_fill_mode": {
+      "entity_id": "select.dev_frame_fill_mode",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "fill_mode",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Fill mode"
+    },
+    "select.dev_frame_orientation": {
+      "entity_id": "select.dev_frame_orientation",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "orientation",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Orientation"
+    },
+    "select.dev_frame_brightness_mode": {
+      "entity_id": "select.dev_frame_brightness_mode",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "brightness_mode",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Brightness mode"
+    },
+    "sensor.dev_frame_photo_on_screen": {
+      "entity_id": "sensor.dev_frame_photo_on_screen",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "current_photo",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Photo on screen"
+    },
+    "sensor.dev_frame_photos": {
+      "entity_id": "sensor.dev_frame_photos",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "photos",
+      "platform": "openframe",
+      "entity_category": "diagnostic",
+      "has_entity_name": true,
+      "name": "Photos"
+    },
+    "sensor.dev_frame_visible_photos": {
+      "entity_id": "sensor.dev_frame_visible_photos",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "photos_visible",
+      "platform": "openframe",
+      "entity_category": "diagnostic",
+      "has_entity_name": true,
+      "name": "Visible photos"
+    },
+    "sensor.dev_frame_hidden_photos": {
+      "entity_id": "sensor.dev_frame_hidden_photos",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "photos_hidden",
+      "platform": "openframe",
+      "entity_category": "diagnostic",
+      "has_entity_name": true,
+      "name": "Hidden photos"
+    },
+    "sensor.dev_frame_albums": {
+      "entity_id": "sensor.dev_frame_albums",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "albums",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Albums"
+    },
+    "switch.dev_frame_slideshow": {
+      "entity_id": "switch.dev_frame_slideshow",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "slideshow",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Slideshow"
+    },
+    "switch.dev_frame_clock": {
+      "entity_id": "switch.dev_frame_clock",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "clock",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Clock"
+    },
+    "switch.dev_frame_display_schedule": {
+      "entity_id": "switch.dev_frame_display_schedule",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "display_schedule",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Display schedule"
+    },
+    "switch.dev_frame_automatic_update_check": {
+      "entity_id": "switch.dev_frame_automatic_update_check",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "auto_update_check",
+      "platform": "openframe",
+      "entity_category": "config",
+      "has_entity_name": true,
+      "name": "Automatic update check"
+    },
+    "switch.dev_frame_album_holiday": {
+      "entity_id": "switch.dev_frame_album_holiday",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "album",
+      "platform": "openframe",
+      "has_entity_name": true,
+      "name": "Album holiday"
+    },
+    "update.dev_frame_app": {
+      "entity_id": "update.dev_frame_app",
+      "device_id": "93e6613a840fbec7637bc433e8abc019",
+      "next_name_part": "device",
+      "labels": [],
+      "translation_key": "app",
+      "platform": "openframe",
+      "entity_category": "diagnostic",
+      "has_entity_name": true,
+      "name": "App"
+    }
+  },
+  "states": {
+    "binary_sensor.dev_frame_safe_mode": {
+      "entity_id": "binary_sensor.dev_frame_safe_mode",
+      "state": "off",
+      "attributes": {
+        "device_class": "problem",
+        "friendly_name": "Dev frame Safe mode"
+      },
+      "last_changed": "2026-11-14T10:15:37.345Z",
+      "last_updated": "2026-11-14T10:15:37.345Z"
+    },
+    "binary_sensor.dev_frame_transition_fallback": {
+      "entity_id": "binary_sensor.dev_frame_transition_fallback",
+      "state": "off",
+      "attributes": {
+        "device_class": "problem",
+        "friendly_name": "Dev frame Transition fallback"
+      },
+      "last_changed": "2026-11-14T10:15:37.345Z",
+      "last_updated": "2026-11-14T10:15:37.345Z"
+    },
+    "button.dev_frame_next_photo": {
+      "entity_id": "button.dev_frame_next_photo",
+      "state": "unknown",
+      "attributes": {
+        "friendly_name": "Dev frame Next photo"
+      },
+      "last_changed": "2026-11-14T10:15:37.345Z",
+      "last_updated": "2026-11-14T10:15:37.345Z"
+    },
+    "button.dev_frame_previous_photo": {
+      "entity_id": "button.dev_frame_previous_photo",
+      "state": "unknown",
+      "attributes": {
+        "friendly_name": "Dev frame Previous photo"
+      },
+      "last_changed": "2026-11-14T10:15:37.346Z",
+      "last_updated": "2026-11-14T10:15:37.346Z"
+    },
+    "button.dev_frame_check_for_update": {
+      "entity_id": "button.dev_frame_check_for_update",
+      "state": "unknown",
+      "attributes": {
+        "friendly_name": "Dev frame Check for update"
+      },
+      "last_changed": "2026-11-14T10:15:37.346Z",
+      "last_updated": "2026-11-14T10:15:37.346Z"
+    },
+    "button.dev_frame_leave_safe_mode": {
+      "entity_id": "button.dev_frame_leave_safe_mode",
+      "state": "unavailable",
+      "attributes": {
+        "friendly_name": "Dev frame Leave safe mode"
+      },
+      "last_changed": "2026-11-14T10:15:37.346Z",
+      "last_updated": "2026-11-14T10:15:37.346Z"
+    },
+    "image.dev_frame_photo_on_screen": {
+      "entity_id": "image.dev_frame_photo_on_screen",
+      "state": "2026-11-14T10:15:37.347113+00:00",
+      "attributes": {
+        "access_token": "0123456789abcdef",
+        "screen_width": 1024,
+        "screen_height": 600,
+        "entity_picture": "/api/image_proxy/image.dev_frame_photo_on_screen?token=0123456789abcdef",
+        "friendly_name": "Dev frame Photo on screen"
+      },
+      "last_changed": "2026-11-14T10:15:37.347Z",
+      "last_updated": "2026-11-14T10:15:37.347Z"
+    },
+    "light.dev_frame_display": {
+      "entity_id": "light.dev_frame_display",
+      "state": "on",
+      "attributes": {
+        "supported_color_modes": [
+          "brightness"
+        ],
+        "color_mode": "brightness",
+        "brightness": 204,
+        "cause": "none",
+        "next_change": null,
+        "dimmed": false,
+        "auto": false,
+        "friendly_name": "Dev frame Display",
+        "supported_features": 0
+      },
+      "last_changed": "2026-11-14T10:15:37.347Z",
+      "last_updated": "2026-11-14T10:15:37.347Z"
+    },
+    "number.dev_frame_interval": {
+      "entity_id": "number.dev_frame_interval",
+      "state": "30",
+      "attributes": {
+        "min": 5,
+        "max": 86400,
+        "step": 1,
+        "mode": "box",
+        "unit_of_measurement": "s",
+        "friendly_name": "Dev frame Interval"
+      },
+      "last_changed": "2026-11-14T10:15:37.348Z",
+      "last_updated": "2026-11-14T10:15:37.348Z"
+    },
+    "number.dev_frame_transition_duration": {
+      "entity_id": "number.dev_frame_transition_duration",
+      "state": "800",
+      "attributes": {
+        "min": 0,
+        "max": 5000,
+        "step": 1,
+        "mode": "box",
+        "unit_of_measurement": "ms",
+        "friendly_name": "Dev frame Transition duration"
+      },
+      "last_changed": "2026-11-14T10:15:37.348Z",
+      "last_updated": "2026-11-14T10:15:37.348Z"
+    },
+    "number.dev_frame_dimmed_brightness": {
+      "entity_id": "number.dev_frame_dimmed_brightness",
+      "state": "20",
+      "attributes": {
+        "min": 1,
+        "max": 100,
+        "step": 1,
+        "mode": "slider",
+        "unit_of_measurement": "%",
+        "friendly_name": "Dev frame Dimmed brightness"
+      },
+      "last_changed": "2026-11-14T10:15:37.348Z",
+      "last_updated": "2026-11-14T10:15:37.348Z"
+    },
+    "select.dev_frame_order": {
+      "entity_id": "select.dev_frame_order",
+      "state": "shuffle",
+      "attributes": {
+        "options": [
+          "shuffle",
+          "chronological"
+        ],
+        "friendly_name": "Dev frame Order"
+      },
+      "last_changed": "2026-11-14T10:15:37.349Z",
+      "last_updated": "2026-11-14T10:15:37.349Z"
+    },
+    "select.dev_frame_transition": {
+      "entity_id": "select.dev_frame_transition",
+      "state": "fade",
+      "attributes": {
+        "options": [
+          "fade",
+          "slide",
+          "none"
+        ],
+        "friendly_name": "Dev frame Transition"
+      },
+      "last_changed": "2026-11-14T10:15:37.349Z",
+      "last_updated": "2026-11-14T10:15:37.349Z"
+    },
+    "select.dev_frame_fill_mode": {
+      "entity_id": "select.dev_frame_fill_mode",
+      "state": "auto",
+      "attributes": {
+        "options": [
+          "auto",
+          "fill",
+          "fit"
+        ],
+        "friendly_name": "Dev frame Fill mode"
+      },
+      "last_changed": "2026-11-14T10:15:37.349Z",
+      "last_updated": "2026-11-14T10:15:37.349Z"
+    },
+    "select.dev_frame_orientation": {
+      "entity_id": "select.dev_frame_orientation",
+      "state": "landscape",
+      "attributes": {
+        "options": [
+          "landscape",
+          "portrait"
+        ],
+        "friendly_name": "Dev frame Orientation"
+      },
+      "last_changed": "2026-11-14T10:15:37.349Z",
+      "last_updated": "2026-11-14T10:15:37.349Z"
+    },
+    "select.dev_frame_brightness_mode": {
+      "entity_id": "select.dev_frame_brightness_mode",
+      "state": "system",
+      "attributes": {
+        "options": [
+          "system",
+          "manual",
+          "auto"
+        ],
+        "friendly_name": "Dev frame Brightness mode"
+      },
+      "last_changed": "2026-11-14T10:15:37.349Z",
+      "last_updated": "2026-11-14T10:15:37.349Z"
+    },
+    "sensor.dev_frame_photo_on_screen": {
+      "entity_id": "sensor.dev_frame_photo_on_screen",
+      "state": "Summer 2025",
+      "attributes": {
+        "album": "holiday/2025",
+        "taken_at": "2025-07-14T16:20:00Z",
+        "place": "Example Town",
+        "photo_id": "local-76a545956b7e5b94e7e56163db5bbac8100ef6a2",
+        "friendly_name": "Dev frame Photo on screen"
+      },
+      "last_changed": "2026-11-14T10:15:37.350Z",
+      "last_updated": "2026-11-14T10:15:37.350Z"
+    },
+    "sensor.dev_frame_photos": {
+      "entity_id": "sensor.dev_frame_photos",
+      "state": "3",
+      "attributes": {
+        "state_class": "measurement",
+        "friendly_name": "Dev frame Photos"
+      },
+      "last_changed": "2026-11-14T10:15:37.350Z",
+      "last_updated": "2026-11-14T10:15:37.350Z"
+    },
+    "sensor.dev_frame_visible_photos": {
+      "entity_id": "sensor.dev_frame_visible_photos",
+      "state": "3",
+      "attributes": {
+        "state_class": "measurement",
+        "friendly_name": "Dev frame Visible photos"
+      },
+      "last_changed": "2026-11-14T10:15:37.350Z",
+      "last_updated": "2026-11-14T10:15:37.350Z"
+    },
+    "sensor.dev_frame_hidden_photos": {
+      "entity_id": "sensor.dev_frame_hidden_photos",
+      "state": "0",
+      "attributes": {
+        "state_class": "measurement",
+        "friendly_name": "Dev frame Hidden photos"
+      },
+      "last_changed": "2026-11-14T10:15:37.351Z",
+      "last_updated": "2026-11-14T10:15:37.351Z"
+    },
+    "sensor.dev_frame_albums": {
+      "entity_id": "sensor.dev_frame_albums",
+      "state": "2",
+      "attributes": {
+        "state_class": "measurement",
+        "friendly_name": "Dev frame Albums"
+      },
+      "last_changed": "2026-11-14T10:15:37.351Z",
+      "last_updated": "2026-11-14T10:15:37.351Z"
+    },
+    "switch.dev_frame_slideshow": {
+      "entity_id": "switch.dev_frame_slideshow",
+      "state": "on",
+      "attributes": {
+        "friendly_name": "Dev frame Slideshow"
+      },
+      "last_changed": "2026-11-14T10:15:37.351Z",
+      "last_updated": "2026-11-14T10:15:37.351Z"
+    },
+    "switch.dev_frame_clock": {
+      "entity_id": "switch.dev_frame_clock",
+      "state": "off",
+      "attributes": {
+        "friendly_name": "Dev frame Clock"
+      },
+      "last_changed": "2026-11-14T10:15:37.352Z",
+      "last_updated": "2026-11-14T10:15:37.352Z"
+    },
+    "switch.dev_frame_display_schedule": {
+      "entity_id": "switch.dev_frame_display_schedule",
+      "state": "off",
+      "attributes": {
+        "friendly_name": "Dev frame Display schedule"
+      },
+      "last_changed": "2026-11-14T10:15:37.355Z",
+      "last_updated": "2026-11-14T10:15:37.355Z"
+    },
+    "switch.dev_frame_automatic_update_check": {
+      "entity_id": "switch.dev_frame_automatic_update_check",
+      "state": "on",
+      "attributes": {
+        "friendly_name": "Dev frame Automatic update check"
+      },
+      "last_changed": "2026-11-14T10:15:37.355Z",
+      "last_updated": "2026-11-14T10:15:37.355Z"
+    },
+    "switch.dev_frame_album_holiday": {
+      "entity_id": "switch.dev_frame_album_holiday",
+      "state": "on",
+      "attributes": {
+        "photos": 2,
+        "friendly_name": "Dev frame Album holiday"
+      },
+      "last_changed": "2026-11-14T10:15:37.355Z",
+      "last_updated": "2026-11-14T10:15:37.355Z"
+    },
+    "update.dev_frame_app": {
+      "entity_id": "update.dev_frame_app",
+      "state": "off",
+      "attributes": {
+        "auto_update": false,
+        "display_precision": 0,
+        "installed_version": "0.6.0",
+        "in_progress": false,
+        "latest_version": "0.6.0",
+        "release_summary": null,
+        "release_url": null,
+        "skipped_version": null,
+        "title": "openframe",
+        "update_percentage": null,
+        "entity_picture": "/api/brands/integration/openframe/icon.png",
+        "friendly_name": "Dev frame App",
+        "supported_features": 4
+      },
+      "last_changed": "2026-11-14T10:15:37.356Z",
+      "last_updated": "2026-11-14T10:15:37.356Z"
+    }
+  }
+}
