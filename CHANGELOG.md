@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/tycho991/ha-openframe/compare/v0.3.0...v0.3.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* load each new photo on the dashboard card ([#17](https://github.com/tycho991/ha-openframe/issues/17)) ([e9863d6](https://github.com/tycho991/ha-openframe/commit/e9863d6ea2df6a3f48624b649b1a1b524c664b89))
+
 ## [0.3.0](https://github.com/tycho991/ha-openframe/compare/v0.2.0...v0.3.0) (2026-11-14)
 
 
