@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/tycho991/ha-openframe/compare/v0.2.0...v0.3.0) (2026-11-14)
+
+
+### Features
+
+* add the openframe dashboard card ([#15](https://github.com/tycho991/ha-openframe/issues/15)) ([37cfd5c](https://github.com/tycho991/ha-openframe/commit/37cfd5c5b82f1e0f0f1b9223ca66e2a395ceaa16))
+
 ## [0.2.0](https://github.com/tycho991/ha-openframe/compare/v0.1.0...v0.2.0) (2026-11-13)
 
 
