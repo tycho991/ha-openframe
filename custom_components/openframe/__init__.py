@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .api import OpenframeClient, OpenframeError
 from .const import CONF_CLIENT_ID, DOMAIN
@@ -32,6 +38,12 @@ PLATFORMS: list[Platform] = [
 # Seconds to wait for the frame when the entry is removed; the removal goes ahead without it
 REVOKE_TIMEOUT = 5
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+# Where the dashboard card is served from, and its module
+STATIC_URL = "/openframe_static"
+CARD_MODULE = "openframe-card.js"
+
 
 def _client(hass: HomeAssistant, entry: OpenframeConfigEntry) -> OpenframeClient:
     return OpenframeClient(
@@ -40,6 +52,19 @@ def _client(hass: HomeAssistant, entry: OpenframeConfigEntry) -> OpenframeClient
         entry.data[CONF_PORT],
         entry.data[CONF_TOKEN],
     )
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Serve the dashboard card and load it into the frontend, once per Home Assistant start."""
+    integration = await async_get_integration(hass, DOMAIN)
+    # Without cache headers the browser asks again on each page load: the card imports its model
+    # without the version parameter, and a cached model must not outlive an update
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(STATIC_URL, str(Path(__file__).parent / "frontend"), False)]
+    )
+    # The version busts the browser's cache of the card after an update
+    add_extra_js_url(hass, f"{STATIC_URL}/{CARD_MODULE}?v={integration.version}")
+    return True
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: OpenframeConfigEntry) -> bool:

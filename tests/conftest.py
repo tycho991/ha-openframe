@@ -7,9 +7,11 @@ from datetime import timedelta
 
 import pytest
 from freezegun.api import FrozenDateTimeFactory
+from homeassistant.components.frontend import DATA_EXTRA_MODULE_URL, UrlManager
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openframe.const import CONF_CLIENT_ID, DOMAIN
@@ -19,6 +21,20 @@ from tests.fake_frame import FRAME_ID, FakeFrame
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Let Home Assistant load ``custom_components/openframe`` from this repository."""
+
+
+@pytest.fixture(autouse=True)
+async def frontend(hass: HomeAssistant) -> list[tuple[str, str]]:
+    """The integration's dependencies: `http` for real, `frontend` only as far as the card needs it.
+
+    The real frontend needs the package `home-assistant-frontend` and a dozen integrations; the
+    card only adds a module URL. Returns the changes of the module URLs.
+    """
+    changes: list[tuple[str, str]] = []
+    hass.data[DATA_EXTRA_MODULE_URL] = UrlManager(lambda *change: changes.append(change), [])
+    hass.config.components.add("frontend")
+    assert await async_setup_component(hass, "http", {})
+    return changes
 
 
 @pytest.fixture

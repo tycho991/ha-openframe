@@ -8,6 +8,7 @@ from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.openframe.image import screen_size
 from tests.conftest import entity_id, tick
 from tests.fake_frame import FakeFrame, image_bytes
 
@@ -97,3 +98,31 @@ async def test_image_follows_photo_and_section(
     frame.current = 1
     await tick(hass, freezer)
     assert hass.states.get(image).state != second
+
+
+async def test_screen_format_landscape(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """frame-entities › Screen format of the frame › Landscape."""
+    attributes = hass.states.get(entity_id(hass, "image", "current_photo")).attributes
+    assert (attributes["screen_width"], attributes["screen_height"]) == (1024, 600)
+
+
+async def test_screen_format_switched_to_portrait(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › Screen format of the frame › Switched to portrait: set on the frame
+    itself, so only the settings version tells the integration."""
+    frame.settings["orientation"] = "portrait"
+    frame.settings_version += 1
+    await tick(hass, freezer)
+    attributes = hass.states.get(entity_id(hass, "image", "current_photo")).attributes
+    assert (attributes["screen_width"], attributes["screen_height"]) == (600, 1024)
+
+
+def test_screen_format_of_a_portrait_device() -> None:
+    """A device whose natural orientation is portrait reports a tall screen; landscape still draws
+    on the long edge, as openframe does."""
+    info = {"screen": {"width": 800, "height": 1280}}
+    assert screen_size(info, {"orientation": "landscape"}) == (1280, 800)
+    assert screen_size(info, {"orientation": "portrait"}) == (800, 1280)

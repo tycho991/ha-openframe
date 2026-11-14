@@ -1,5 +1,6 @@
 name: ci
-# Lint, format check, tests against the fake frame, and the contract copy against openframe's pinned release.
+# Lint, format check, tests against the fake frame, the card's model tests, and the contract copy against openframe's
+# pinned release.
 on:
   push:
     branches: [main]
@@ -29,8 +30,8 @@ jobs:
       - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: ${{ env.MISE_VERSION }}
-          # Only Python and uv from .mise.toml, no Node or OpenSpec.
-          install_args: python uv
+          # Python and uv for the integration, Node for the card's model tests; no OpenSpec.
+          install_args: python uv node
 
       - name: Install dependencies
         run: uv sync --locked
@@ -43,6 +44,9 @@ jobs:
 
       - name: Tests
         run: uv run pytest
+
+      - name: Card model tests
+        run: node --test 'tests/frontend/*.test.mjs'
 
       - name: Contract copy equals the pinned openframe release
         run: |
