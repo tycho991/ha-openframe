@@ -7,7 +7,7 @@ After `add-home-assistant-integration` each frame is a device whose entities hav
 ## Goals / Non-Goals
 
 **Goals:**
-- No build step and no npm dependency: the card is plain JavaScript that HACS installs as it is in the repository.
+- No build step and no npm dependency: the card is plain JavaScript that the Marketplace (or HACS on Home Assistant 2026.10) installs as it is in the repository.
 - The card finds a frame's entities by itself from the device, so renamed entity IDs do not break it.
 - The card's logic is testable without a browser.
 
