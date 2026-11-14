@@ -62,6 +62,34 @@ pairing is revoked there, Home Assistant asks to pair again. If the frame gets a
 use Reconfigure on the frame's entry; no new pairing is needed. Removing the frame from Home
 Assistant revokes its pairing on the frame.
 
+## Dashboard card
+
+![The openframe card with the photo on screen, its caption and the controls](docs/card.png)
+
+The integration brings a dashboard card along and loads it by itself; no resource needs to be
+added. It shows the photo on screen in the frame's shape, dimmed with "Display off" while the
+display is off, badges for "Paused", "Safe mode" and "Unavailable", the caption of the photo, and
+buttons for previous, play/pause, next and the display. Previous and next are disabled while the
+display is off; the display button is hidden while the frame can neither switch nor dim its display.
+
+Add it in a dashboard's edit mode with Add card › By card › openframe. Its editor offers the frame,
+a title and whether to show the caption. In YAML:
+
+```yaml
+type: custom:openframe-card
+device_id: 0123456789abcdef0123456789abcdef
+title: Hall
+show_caption: false
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `device_id` | the first frame | The frame's device; the editor fills it in, and the device page's URL ends with it. |
+| `title` | the device's name | The card's title. |
+| `show_caption` | `true` | Show the comment or file name of the photo and its album below the photo. |
+
+After an update of the integration, reload the page in the browser once to get the new card.
+
 ## Entities
 
 Entity IDs follow the frame's name, for example `light.photo_frame_display` for a frame named
@@ -193,6 +221,7 @@ automation:
 mise trust && mise install
 uv sync
 uv run pytest
+node --test 'tests/frontend/*.test.mjs'
 ```
 
 [mise](https://mise.jdx.dev) pins Node, OpenSpec, Python and uv (`.mise.toml`). After Renovate
@@ -203,6 +232,10 @@ The tests run Home Assistant against a fake frame (`tests/fake_frame.py`) that c
 request and response against openframe's API contract in `tests/contract/`, pinned to the openframe
 release in `tests/contract/OPENFRAME_VERSION`. `tools/update-contract.sh <tag>` downloads another
 release's contract.
+
+The dashboard card in `custom_components/openframe/frontend/` is plain JavaScript without a build
+step: `model.js` computes what the card shows from Home Assistant's `hass` object, and
+`tests/frontend/` tests it against `hass` objects recorded with the fake frame.
 
 Changes follow OpenSpec: `/opsx:propose`, `openspec validate <change>`, `/opsx:apply`,
 `/opsx:archive`.
