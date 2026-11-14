@@ -7,7 +7,7 @@
 
 ## 2. Card model
 
-- [ ] 2.1 `frontend/model.js` with `findEntities`, `cardState` and `strings` per design decision 1; verify: `node --test tests/frontend/` with recorded `hass` objects for every scenario of "Photo in the frame's shape", "States on the card", "Caption on the card" and "Languages and themes" › "German user", for the device of another integration, and for the fallback without `translation_key`
+- [ ] 2.1 `frontend/model.js` with `findEntities`, `cardState` and `strings` per design decision 1; verify: `node --test tests/frontend/` with recorded `hass` objects for every scenario of "Photo in the frame's shape", "States on the card", "Caption on the card" and "Languages and themes" › "German user", for the device of another integration, for an unavailable display light, and for the fallback without `translation_key`
 - [ ] 2.2 `ci.yml` runs `node --test tests/frontend/`; verify: the job passes locally with `mise exec -- node --test tests/frontend/`
 
 ## 3. Card view and editor

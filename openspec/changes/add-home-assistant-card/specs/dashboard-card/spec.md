@@ -55,7 +55,7 @@ While the display is off, the card SHALL show the photo dimmed with a "Display o
 - **THEN** the card shows "Unavailable", and its buttons are hidden
 
 ### Requirement: Controls on the card
-The card SHALL offer previous, play/pause and next, and a display button that switches the display on and off. Previous and next SHALL be disabled while the display is off. The display button SHALL be hidden while the frame cannot switch its display.
+The card SHALL offer previous, play/pause and next, and a display button that toggles the frame's display light. Previous and next SHALL be disabled while the display is off. The display button SHALL be hidden while the display light is unavailable; a switch the frame refuses SHALL show the frame's message.
 
 #### Scenario: Pause on the card
 - **WHEN** the user presses play/pause on the card while the slideshow plays
@@ -68,6 +68,10 @@ The card SHALL offer previous, play/pause and next, and a display button that sw
 #### Scenario: Next at night
 - **WHEN** the display is off
 - **THEN** previous and next are disabled
+
+#### Scenario: Display switch refused
+- **WHEN** the frame may set its brightness but openframe is not a device administrator, and the user presses the display button
+- **THEN** the card shows the message that openframe is not a device administrator, and the display stays as it was
 
 ### Requirement: Caption on the card
 With the caption switched on, the card SHALL show the name of the photo on screen below the photo, as the sensor of the photo on screen names it, and its album in a second line. A long text SHALL end with an ellipsis instead of growing the card.
