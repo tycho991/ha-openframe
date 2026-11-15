@@ -2,8 +2,8 @@
 
 ## 1. Contract and client
 
-- [ ] 1.1 `tools/update-contract.sh` also copies `api/fixtures/presentation-cases.json` to `tests/contract/`; the CI contract check compares it too; verify: running the script with the pinned tag leaves `git diff` empty, and the CI step fails on an edited copy
-- [ ] 1.2 Fake frame: `PATCH`/`DELETE /photos/{id}`, `POST /photos` (multipart, 415, 507), `GET /photos` pages with `album`, `subalbums`, `visible`, `cursor`, `PATCH /albums`, `GET /photos/{id}/image` with `ETag`/`If-None-Match`; client methods for them; verify: client tests for each method against the fake frame, all requests and responses validated against the contract
+- [ ] 1.1 `tools/update-contract.sh` also copies `api/fixtures/presentation-cases.json` to `tests/contract/` (CI's contract check and `renovate-artifacts` already run the script and compare the whole folder); verify: running the script with the pinned tag leaves `git diff` empty, and the CI step fails on an edited copy
+- [ ] 1.2 Fake frame: `PATCH`/`DELETE /photos/{id}`, `POST /photos` (multipart, 415, 507), `GET /photos` pages with `album`, `subalbums`, `visible`, `cursor`, `PATCH /albums`, `GET /photos/{id}/image` with `ETag`/`If-None-Match`, `v` and 503; client methods for them, extending the existing `get_albums`, `patch_album` and `get_photo_image`; verify: client tests for each method against the fake frame, all requests and responses validated against the contract
 
 ## 2. Photo actions
 
@@ -14,8 +14,8 @@
 
 ## 3. Image proxy and media browser
 
-- [ ] 3.1 `OpenframeImageView` per design decision 3; verify: tests that a request without session or signature gets 401 without a request to the fake frame, that a signed URL works until it expires, that `ETag`, `Cache-Control` and 304 pass through, and that a `size` other than `thumb` or `full` and a malformed photo ID get 400 (`media-browser` › Photos only for signed-in users)
-- [ ] 3.2 `media_source.py` per design decision 4, `media_source` in the manifest's dependencies; verify: tests for every scenario of "Frames and albums as folders", "Photos in a folder" and "Opening a photo", that a single frame skips the frame level, and that the resolved URL points to Home Assistant (`media-browser` › Photos only for signed-in users › Image source in the browser)
+- [ ] 3.1 `OpenframeImageView` per design decision 3; verify: tests that a request without session or signature gets 401 without a request to the fake frame, that a signed URL works until it expires, that the URL carries the photo's version and the frame is asked with `v`, that `ETag`, `Cache-Control`, 304 and 503 pass through, and that a `size` other than `thumb` or `full` and a malformed photo ID get 400 (`media-browser` › Photos only for signed-in users)
+- [ ] 3.2 `media_source.py` per design decision 4, `media_source` in the manifest's dependencies; verify: tests for every scenario of "Frames and albums as folders", "Photos in a folder", "Frame not available" and "Opening a photo", that a single frame skips the frame level, and that the resolved URL points to Home Assistant (`media-browser` › Photos only for signed-in users › Image source in the browser)
 
 ## 4. Card
 
@@ -37,5 +37,4 @@
 
 ## Workflow follow-up
 
-- Start after `add-home-assistant-card` is archived, so that `dashboard-card` exists as a main spec.
 - Archive the change after the device rows of 5.1 are done.
