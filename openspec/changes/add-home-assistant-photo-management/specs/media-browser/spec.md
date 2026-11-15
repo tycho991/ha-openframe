@@ -24,6 +24,17 @@ Photos SHALL be listed newest first with a thumbnail and titled by their comment
 - **WHEN** an album has 1,200 photos directly in it
 - **THEN** its folder lists the 500 newest and its title says "500 of 1200"
 
+### Requirement: Frame not available
+While a frame does not answer or runs in safe mode, opening its folder SHALL show an error that says so instead of an empty folder. A photo the frame cannot render SHALL be listed without a thumbnail.
+
+#### Scenario: Frame in safe mode
+- **WHEN** the user opens the folder of a frame that runs in safe mode
+- **THEN** the media browser shows that the frame is in safe mode
+
+#### Scenario: Photo that cannot be rendered
+- **WHEN** an album contains a photo the frame quarantined
+- **THEN** the folder lists it without a thumbnail, and the other photos have theirs
+
 ### Requirement: Opening a photo
 Opening a photo in the media browser SHALL show it uncropped in the frame's full size (longest edge at most 2048 pixels).
 
