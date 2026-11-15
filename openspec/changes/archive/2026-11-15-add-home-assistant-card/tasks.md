@@ -19,7 +19,7 @@
 ## 4. Devices
 
 - [x] 4.1 Rows in `../openframe-private/DEVICE_TEST.md` with their references: the card on a phone while the frame changes photos (`dashboard-card` › Photo in the frame's shape › Landscape frame), display off and on from the card on the Frameo (`dashboard-card` › Controls on the card › Display on from the card); verify: the rows exist with their references
-- [ ] 4.2 Run the rows of 4.1; ask before any persistent change on a device; verify: results entered, a finding in `../openframe-private/FINDINGS.md` for anything that differs
+- [x] 4.2 Run the rows of 4.1; ask before any persistent change on a device; verify: results entered, a finding in `../openframe-private/FINDINGS.md` for anything that differs
 
 ## 5. Integration
 
