@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/tycho991/ha-openframe/compare/v0.3.1...v0.3.2) (2026-11-15)
+
+
+### Bug Fixes
+
+* name the cause of a refused installation and the app update's title ([#21](https://github.com/tycho991/ha-openframe/issues/21)) ([648127f](https://github.com/tycho991/ha-openframe/commit/648127fb335df226b67886e1abbbb86294f1fc8b))
+
 ## [0.3.1](https://github.com/tycho991/ha-openframe/compare/v0.3.0...v0.3.1) (2026-11-14)
 
 
