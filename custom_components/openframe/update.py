@@ -1,8 +1,8 @@
 """The app update: installed and latest openframe version, installed through the frame.
 
-Installing opens Android's installation dialog on the frame, which someone confirms there. It is
-offered for an update the frame has downloaded and verified, and not while Android does not let
-openframe install apps.
+Installing opens Android's installation dialog on the frame, which someone confirms there; the
+release notes start with a sentence that says so. It is offered for an update the frame has
+downloaded and verified, and not while Android does not let openframe install apps.
 """
 
 from __future__ import annotations
@@ -12,11 +12,16 @@ from typing import Any
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.translation import async_get_translations
 
+from .const import DOMAIN
 from .coordinator import OpenframeConfigEntry, OpenframeCoordinator
 from .entity import OpenframeEntity
 
 IN_PROGRESS_PHASES = frozenset({"downloading", "installing"})
+
+# Kept with the error messages, the only free sentences the translation files allow
+CONFIRM_ON_FRAME = f"component.{DOMAIN}.exceptions.install_confirm_on_frame.message"
 
 
 async def async_setup_entry(
@@ -30,7 +35,8 @@ async def async_setup_entry(
 class AppUpdate(OpenframeEntity, UpdateEntity):
     """The openframe app on the frame."""
 
-    _attr_title = "openframe"
+    # Not just "openframe", which is the integration's own update in Settings › Updates
+    _attr_title = "openframe app"
 
     def __init__(self, coordinator: OpenframeCoordinator) -> None:
         super().__init__(coordinator, "app")
@@ -69,7 +75,11 @@ class AppUpdate(OpenframeEntity, UpdateEntity):
         if latest is None:
             return None
         notes = latest["notes"].replace("```", "`\u200b``")
-        return f"```text\n{notes}\n```"
+        # The release notes come without the user's language; Home Assistant's own is the closest
+        translations = await async_get_translations(
+            self.hass, self.hass.config.language, "exceptions", {DOMAIN}
+        )
+        return f"{translations[CONFIRM_ON_FRAME]}\n\n```text\n{notes}\n```"
 
     async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
         self.coordinator.set_update(await self.command(self.coordinator.client.install_update()))

@@ -197,6 +197,8 @@ class FakeFrame:
     signature_hour: int = 0
     # Answer GET /slideshow with 401 although the token is valid (a hiccup of the frame)
     reject_slideshow: bool = False
+    # Refuse install requests as the frame does for 30 minutes after a declined dialog
+    install_cooldown: bool = False
     # Index into the visible photos of the photo on screen, None while none is shown
     current: int | None = 0
 
@@ -562,6 +564,8 @@ class FakeFrame:
                     return error(409, "update_not_ready")
                 if not self.update["installAllowed"]:
                     return error(409, "install_not_allowed")
+                if self.install_cooldown:
+                    return error(409, "install_cooldown")
                 self.update["phase"] = "installing"
                 self.display.update(on=True, cause="wake")
                 return web.json_response(self.update, status=202)

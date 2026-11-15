@@ -119,7 +119,7 @@ Entity IDs follow the frame's name, for example `light.photo_frame_display` for 
 | `sync_<source>` | button | Start a sync of a remote source. |
 | `last_sync_<source>` | sensor | Time of the last sync; attributes `added`, `updated`, `removed`. |
 | `sync_problem_<source>` | binary_sensor | On while the last sync failed; attribute `error`. |
-| `app` | update | Installed and latest openframe version with release notes; installing opens Android's installation dialog on the frame, which someone confirms there. |
+| `app` | update | "openframe app": installed and latest openframe version with release notes. Installing opens Android's installation dialog on the frame's screen; confirm it there within 10 minutes. After a dialog that was cancelled or not confirmed, the frame refuses requests from Home Assistant for 30 minutes; "Install update" in the frame menu installs at once. |
 | `check_update` | button | Ask the frame to check for an update now (diagnostic). |
 | `safe_mode` | binary_sensor | On while the frame runs in safe mode after repeated crashes. |
 | `leave_safe_mode` | button | Start the frame normally again; available only in safe mode. |
