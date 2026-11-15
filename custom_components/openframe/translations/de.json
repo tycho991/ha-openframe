@@ -273,7 +273,16 @@
       "message": "Der Installationsdialog ist auf dem Rahmen bereits offen."
     },
     "install_cooldown": {
-      "message": "Eine Installation wurde gerade abgebrochen. Versuche es in ein paar Minuten erneut."
+      "message": "Der letzte Installationsdialog am Rahmen wurde abgebrochen oder nicht bestätigt. Home Assistant kann 30 Minuten danach erneut anfragen; am Rahmen installiert „Update installieren“ im Rahmenmenü sofort."
+    },
+    "install_cooldown_unanswered": {
+      "message": "Niemand hat den Installationsdialog am Rahmen innerhalb von 10 Minuten bestätigt. Home Assistant kann 30 Minuten danach erneut anfragen; am Rahmen installiert „Update installieren“ im Rahmenmenü sofort."
+    },
+    "install_cooldown_cancelled": {
+      "message": "Die Installation wurde am Rahmen abgebrochen. Home Assistant kann 30 Minuten danach erneut anfragen; am Rahmen installiert „Update installieren“ im Rahmenmenü sofort."
+    },
+    "install_confirm_on_frame": {
+      "message": "Die Installation öffnet einen Dialog auf dem Bildschirm des Rahmens: Bestätige ihn dort innerhalb von 10 Minuten."
     },
     "source_no_folder": {
       "message": "Wähle zuerst in der Weboberfläche des Rahmens einen Ordner für diese Quelle."

@@ -273,7 +273,16 @@
       "message": "The installation dialog is already open on the frame."
     },
     "install_cooldown": {
-      "message": "An installation was just cancelled. Try again in a few minutes."
+      "message": "The last installation dialog on the frame was cancelled or not confirmed. Home Assistant can ask again 30 minutes after that; on the frame, \"Install update\" in the frame menu installs at once."
+    },
+    "install_cooldown_unanswered": {
+      "message": "Nobody confirmed the installation dialog on the frame within 10 minutes. Home Assistant can ask again 30 minutes after that; on the frame, \"Install update\" in the frame menu installs at once."
+    },
+    "install_cooldown_cancelled": {
+      "message": "The installation was cancelled on the frame. Home Assistant can ask again 30 minutes after that; on the frame, \"Install update\" in the frame menu installs at once."
+    },
+    "install_confirm_on_frame": {
+      "message": "Installing opens a dialog on the frame's screen: confirm it there within 10 minutes."
     },
     "source_no_folder": {
       "message": "Choose a folder for this source in the frame's web UI first."

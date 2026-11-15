@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.components.update import (
     ATTR_IN_PROGRESS,
     ATTR_LATEST_VERSION,
+    ATTR_TITLE,
     UpdateEntityFeature,
 )
 from homeassistant.components.update.const import DATA_COMPONENT as UPDATES
 from homeassistant.const import ATTR_SUPPORTED_FEATURES, STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.conftest import entity_id, tick
@@ -18,6 +21,11 @@ from tests.fake_frame import NOW, FakeFrame
 from tests.helpers import call
 
 RELEASE = {"version": "0.7.0", "notes": "Faster start.\n<b>not html</b>", "publishedAt": NOW}
+CONFIRM_EN = "Installing opens a dialog on the frame's screen: confirm it there within 10 minutes."
+CONFIRM_DE = (
+    "Die Installation öffnet einen Dialog auf dem Bildschirm des Rahmens: "
+    "Bestätige ihn dort innerhalb von 10 Minuten."
+)
 
 
 async def test_update_ready(
@@ -33,7 +41,7 @@ async def test_update_ready(
     assert state.attributes[ATTR_SUPPORTED_FEATURES] & UpdateEntityFeature.INSTALL
     entity = hass.data[UPDATES].get_entity(app)
     notes = await entity.async_release_notes()
-    assert notes == "```text\nFaster start.\n<b>not html</b>\n```"
+    assert notes == f"{CONFIRM_EN}\n\n```text\nFaster start.\n<b>not html</b>\n```"
 
 
 async def test_install_from_home_assistant(
@@ -110,3 +118,61 @@ async def test_check_now(
     state = hass.states.get(entity_id(hass, "update", "app"))
     assert state.attributes[ATTR_LATEST_VERSION] == "0.7.0"
     assert state.state == STATE_ON
+
+
+async def test_confirmation_on_the_frame(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › App update entity › Confirmation on the frame."""
+    await hass.config.async_update(language="de")
+    frame.update.update(phase="ready", latest=RELEASE)
+    await tick(hass, freezer, 60)
+    entity = hass.data[UPDATES].get_entity(entity_id(hass, "update", "app"))
+    notes = await entity.async_release_notes()
+    assert notes.startswith(f"{CONFIRM_DE}\n\n```text\nFaster start.")
+
+
+async def test_two_updates_named_openframe(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """frame-entities › App update entity › Two updates named openframe."""
+    frame.update.update(phase="ready", latest=RELEASE)
+    await tick(hass, freezer, 60)
+    state = hass.states.get(entity_id(hass, "update", "app"))
+    assert state.attributes[ATTR_TITLE] == "openframe app"
+    assert state.attributes[ATTR_LATEST_VERSION] == "0.7.0"
+
+
+@pytest.mark.parametrize(
+    ("error", "key"),
+    [
+        # frame-entities › Refused installation › Dialog not confirmed
+        (
+            {"code": "install_unanswered", "message": "Nobody answered."},
+            "install_cooldown_unanswered",
+        ),
+        # › Dialog cancelled
+        ({"code": "install_cancelled", "message": "Cancelled."}, "install_cooldown_cancelled"),
+        # › Cause not reported
+        (None, "install_cooldown"),
+    ],
+)
+async def test_refused_installation(
+    hass: HomeAssistant,
+    frame: FakeFrame,
+    entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+    error: dict[str, str] | None,
+    key: str,
+) -> None:
+    """frame-entities › Refused installation."""
+    frame.update.update(phase="ready", latest=RELEASE, error=error)
+    frame.install_cooldown = True
+    await tick(hass, freezer, 60)
+    app = entity_id(hass, "update", "app")
+    with pytest.raises(HomeAssistantError) as caught:
+        await call(hass, "update", "install", app)
+    assert caught.value.translation_key == key
+    # No dialog on the frame
+    assert frame.update["phase"] == "ready"
+    assert hass.states.get(app).attributes[ATTR_IN_PROGRESS] is False

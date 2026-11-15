@@ -32,6 +32,12 @@ KNOWN_REFUSALS = frozenset(
     }
 )
 
+# The cause of a refusal with `install_cooldown`, by the frame's last update error
+COOLDOWN_CAUSES = {
+    "install_unanswered": "install_cooldown_unanswered",
+    "install_cancelled": "install_cooldown_cancelled",
+}
+
 
 def device_info(coordinator: OpenframeCoordinator) -> DeviceInfo:
     data = coordinator.data
@@ -95,7 +101,7 @@ class OpenframeEntity(CoordinatorEntity[OpenframeCoordinator]):
         except OpenframeResponseError as err:
             if err.code in KNOWN_REFUSALS:
                 raise HomeAssistantError(
-                    translation_domain=DOMAIN, translation_key=err.code
+                    translation_domain=DOMAIN, translation_key=self._refusal_key(err.code)
                 ) from err
             # A refused value names its reason per field; the message itself is generic then
             reason = "; ".join(err.fields.values()) if err.fields else err.message
@@ -104,6 +110,13 @@ class OpenframeEntity(CoordinatorEntity[OpenframeCoordinator]):
                 translation_key="refused",
                 translation_placeholders={"message": reason},
             ) from err
+
+    def _refusal_key(self, code: str) -> str:
+        """The translation key of a known refusal; a cooldown names why the frame declines."""
+        if code != "install_cooldown":
+            return code
+        error = self.data.update["error"] if self.data else None
+        return COOLDOWN_CAUSES.get(error["code"] if error else "", code)
 
 
 def add_dynamic_entities(

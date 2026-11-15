@@ -142,3 +142,13 @@ async def test_frame_before_the_brightness(frame: FakeFrame) -> None:
     assert status == 200
     assert "brightness" not in display
     assert frame.contract_errors == []
+
+
+async def test_install_cooldown_comes_after_the_other_refusals(frame: FakeFrame) -> None:
+    frame.install_cooldown = True
+    status, answer = await _call(frame, "POST", "/update/install")
+    assert (status, answer["error"]["code"]) == (409, "update_not_ready")
+    frame.update["phase"] = "ready"
+    status, answer = await _call(frame, "POST", "/update/install")
+    assert (status, answer["error"]["code"]) == (409, "install_cooldown")
+    assert frame.update["phase"] == "ready"
