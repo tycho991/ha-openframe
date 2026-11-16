@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/tycho991/ha-openframe/compare/v0.3.2...v0.4.0) (2026-11-16)
+
+
+### Features
+
+* photo management from Home Assistant ([#24](https://github.com/tycho991/ha-openframe/issues/24)) ([e424868](https://github.com/tycho991/ha-openframe/commit/e42486850d30b4f70deaa57bff71d9b52678201c))
+
 ## [0.3.2](https://github.com/tycho991/ha-openframe/compare/v0.3.1...v0.3.2) (2026-11-15)
 
 
