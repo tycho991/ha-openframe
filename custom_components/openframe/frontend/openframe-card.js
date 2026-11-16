@@ -1,6 +1,7 @@
 // The openframe dashboard card and its editor: plain web components without a build step.
 // What they show comes from model.js; this file only renders it and sends the button presses.
 
+import "./crop-editor.js";
 import {
   action,
   cardState,
@@ -18,6 +19,7 @@ const ICONS = {
   next: "mdi:skip-next",
   displayOn: "mdi:monitor",
   displayOff: "mdi:monitor-off",
+  crop: "mdi:crop",
 };
 
 // Shown in a button when the frontend's `ha-icon` is not defined
@@ -28,6 +30,7 @@ const FALLBACK = {
   [ICONS.next]: "⏭",
   [ICONS.displayOn]: "☀",
   [ICONS.displayOff]: "☾",
+  [ICONS.crop]: "⛶",
 };
 
 const STYLE = `
@@ -49,6 +52,12 @@ const STYLE = `
     color: #bbb;
   }
   .badges { position: absolute; top: 8px; left: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+  .tools button {
+    width: 40px; height: 40px; background: rgba(0, 0, 0, 0.55); color: #fff;
+    --mdc-icon-size: 22px;
+  }
+  .tools button:hover:not(:disabled) { background: rgba(0, 0, 0, 0.75); }
   .badge {
     padding: 2px 8px; border-radius: 12px; font-size: 0.85em;
     background: rgba(0, 0, 0, 0.6); color: #fff;
@@ -120,6 +129,7 @@ class OpenframeCard extends HTMLElement {
             <img alt="" hidden>
             <div class="empty" hidden></div>
             <div class="badges"></div>
+            <div class="tools"><button data-action="crop"></button></div>
           </div>
           <div class="caption" hidden><div class="name"></div><div class="album"></div></div>
           <div class="controls">
@@ -187,6 +197,9 @@ class OpenframeCard extends HTMLElement {
       album.hidden = !state.caption.album;
     }
 
+    this._tools = state.tools;
+    this._button("crop", state.tools.crop, ICONS.crop);
+
     this._buttons = state.buttons;
     const controls = root.querySelector(".controls");
     controls.hidden = state.buttons === null;
@@ -219,6 +232,10 @@ class OpenframeCard extends HTMLElement {
   }
 
   async _press(name) {
+    if (name === "crop") {
+      await this._openEditor();
+      return;
+    }
     if (!this._buttons || !this._hass) {
       return;
     }
@@ -228,6 +245,34 @@ class OpenframeCard extends HTMLElement {
     } catch {
       // The frontend shows the error, translated by the integration, as a toast
     }
+  }
+
+  /** Opens the crop editor for the photo the frame shows now; it keeps that photo. */
+  async _openEditor() {
+    if (!this._tools?.crop.shown || !this._hass) {
+      return;
+    }
+    const hass = this._hass;
+    const deviceId = this._config.device_id;
+    let data;
+    try {
+      data = await hass.callWS({ type: "openframe/photo", device_id: deviceId });
+    } catch (err) {
+      this._notify(err?.message ?? String(err));
+      return;
+    }
+    if (!data.photo) {
+      return;
+    }
+    const editor = document.createElement("openframe-crop-editor");
+    this.shadowRoot.appendChild(editor);
+    editor.open({ hass, deviceId, data, text: strings(languageOf(hass)) });
+  }
+
+  _notify(message) {
+    this.dispatchEvent(
+      new CustomEvent("hass-notification", { detail: { message }, bubbles: true, composed: true }),
+    );
   }
 }
 

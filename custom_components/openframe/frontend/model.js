@@ -37,6 +37,15 @@ const STRINGS = {
     title: "Title",
     showCaption: "Show caption",
     pickerDescription: "The photo on screen and the controls of a frame.",
+    crop: "Choose section",
+    cropTitle: "Photo section",
+    cropHint:
+      "Drag to move the section; pinch, the mouse wheel or − and + zoom. The frame shows what is inside.",
+    cropZoomIn: "Zoom in",
+    cropZoomOut: "Zoom out",
+    cropAutomatic: "Automatic",
+    cropSave: "Save",
+    cropCancel: "Cancel",
   },
   de: {
     displayOff: "Display aus",
@@ -56,6 +65,15 @@ const STRINGS = {
     title: "Titel",
     showCaption: "Bildunterschrift anzeigen",
     pickerDescription: "Das angezeigte Foto und die Bedienung eines Rahmens.",
+    crop: "Ausschnitt wählen",
+    cropTitle: "Fotoausschnitt",
+    cropHint:
+      "Ziehen verschiebt den Ausschnitt; Spreizen, das Mausrad oder − und + zoomen. Der Rahmen zeigt, was innen liegt.",
+    cropZoomIn: "Vergrößern",
+    cropZoomOut: "Verkleinern",
+    cropAutomatic: "Automatisch",
+    cropSave: "Speichern",
+    cropCancel: "Abbrechen",
   },
 };
 
@@ -150,6 +168,7 @@ export function cardState(hass, config) {
       badges: [text.unavailable],
       caption: null,
       buttons: null,
+      tools: photoTools(false, text),
     };
   }
 
@@ -215,7 +234,15 @@ export function cardState(hass, config) {
     badges,
     caption,
     buttons,
+    // Changing photos is for administrators, and only while a photo is on screen and the frame is
+    // itself
+    tools: photoTools(Boolean(photo) && !safeMode && hass.user?.is_admin === true, text),
   };
+}
+
+/** The buttons on the photo that change it; all follow the same visibility rules. */
+function photoTools(shown, text) {
+  return { crop: { shown, enabled: true, label: text.crop } };
 }
 
 /** The service call of a button: domain, service and entity. */

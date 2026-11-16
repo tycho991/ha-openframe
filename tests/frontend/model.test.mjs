@@ -221,3 +221,46 @@ test("the editor limits the device picker to openframe", () => {
   assert.equal(caption.default, true);
   assert.equal(editorLabel("show_caption", "de"), "Bildunterschrift anzeigen");
 });
+
+// -- Crop editor not offered -----------------------------------------------------------------
+
+const ADMIN = { id: "u1", name: "Admin", is_admin: true };
+
+test("Crop editor not offered › Non-admin user: no crop button, but photo and controls", () => {
+  const admin = cardState(hass((c) => (c.user = ADMIN)), config);
+  assert.equal(admin.tools.crop.shown, true);
+  assert.equal(admin.tools.crop.label, "Choose section");
+  const user = cardState(hass((c) => (c.user = { ...ADMIN, is_admin: false })), config);
+  assert.equal(user.tools.crop.shown, false);
+  assert.ok(user.photo);
+  assert.equal(user.buttons.next.shown, true);
+  assert.equal(cardState(hass(), config).tools.crop.shown, false, "without a user");
+});
+
+test("Crop editor not offered: without a photo, in safe mode or while the frame is unavailable", () => {
+  const noPhoto = hass((c) => {
+    c.user = ADMIN;
+    setState(c, IMAGE, "unknown");
+  });
+  assert.equal(cardState(noPhoto, config).tools.crop.shown, false);
+  const safeMode = hass((c) => {
+    c.user = ADMIN;
+    setState(c, SAFE_MODE, "on");
+  });
+  assert.equal(cardState(safeMode, config).tools.crop.shown, false);
+  const unavailable = hass((c) => {
+    c.user = ADMIN;
+    for (const entityId of Object.keys(c.states)) {
+      setState(c, entityId, "unavailable");
+    }
+  });
+  assert.equal(cardState(unavailable, config).tools.crop.shown, false);
+});
+
+test("the crop texts exist in both languages", () => {
+  for (const key of ["crop", "cropTitle", "cropHint", "cropSave", "cropAutomatic", "cropCancel"]) {
+    assert.ok(strings("en")[key], key);
+    assert.ok(strings("de")[key], key);
+  }
+  assert.equal(strings("de").cropAutomatic, "Automatisch");
+});
