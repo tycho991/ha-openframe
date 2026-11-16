@@ -1,6 +1,6 @@
 set_photo_hidden:
   target:
-    device:
+    entity:
       integration: openframe
   fields:
     photo_id:
@@ -15,7 +15,7 @@ set_photo_hidden:
 
 set_photo_comment:
   target:
-    device:
+    entity:
       integration: openframe
   fields:
     photo_id:
@@ -30,7 +30,7 @@ set_photo_comment:
 
 set_photo_crop:
   target:
-    device:
+    entity:
       integration: openframe
   fields:
     photo_id:
@@ -68,7 +68,7 @@ set_photo_crop:
 
 delete_photo:
   target:
-    device:
+    entity:
       integration: openframe
   fields:
     photo_id:
@@ -78,7 +78,7 @@ delete_photo:
 
 upload_photo:
   target:
-    device:
+    entity:
       integration: openframe
   fields:
     file_path:
@@ -94,7 +94,7 @@ upload_photo:
 
 set_album_hidden:
   target:
-    device:
+    entity:
       integration: openframe
   fields:
     album:

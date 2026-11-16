@@ -610,3 +610,17 @@ async def test_upload_refreshes_the_counts(
     frame.library_version = version
     await tick(hass, freezer)
     assert hass.states.get(entity_id(hass, "sensor", "photos")).state == "1"
+
+
+async def test_target_by_entity(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """The editor offers the frames through their entities; an entity of a frame targets it."""
+    photo = frame.add_photo("a/1.jpg")
+    await hass.services.async_call(
+        DOMAIN,
+        "set_photo_hidden",
+        {"entity_id": entity_id(hass, "image", "current_photo"), "hidden": True},
+        blocking=True,
+    )
+    assert photo.hidden is True

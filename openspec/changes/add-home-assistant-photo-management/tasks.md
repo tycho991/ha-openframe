@@ -32,8 +32,8 @@
 
 ## 6. Integration
 
-- [ ] 6.1 `uv run ruff check`, `uv run ruff format --check`, `uv run pytest`, `node --test 'tests/frontend/*.test.mjs'`; verify: all green
-- [ ] 6.2 `openspec validate add-home-assistant-photo-management`; verify: exit 0 without warnings
+- [x] 6.1 `uv run ruff check`, `uv run ruff format --check`, `uv run pytest`, `node --test 'tests/frontend/*.test.mjs'`; verify: all green
+- [x] 6.2 `openspec validate add-home-assistant-photo-management`; verify: exit 0 without warnings
 
 ## Workflow follow-up
 
