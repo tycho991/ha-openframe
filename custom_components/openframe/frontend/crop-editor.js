@@ -1,10 +1,16 @@
 // The crop editor: a dialog over the dashboard that edits the section of the photo the frame showed
 // when it opened. The logic is in crop-model.js; this element draws it and sends the input.
 //
-// The dialog opens with showModal(), in the browser's top layer, so no transform of the dashboard
-// can clip it. It keeps the photo it was opened for: the WebSocket answer is read once.
+// The frame's shape stays fixed in the middle of a larger stage, and the whole photo moves behind
+// it: what the frame will show is inside, the rest of the photo is dimmed around it. The dialog
+// opens with showModal(), in the browser's top layer, so no transform of the dashboard can clip it.
+// It keeps the photo it was opened for: the WebSocket answer is read once.
 
 import { ZOOM_STEP, changeCrop, editorView, pinch, wheelFactor } from "./crop-model.js";
+
+// The frame's share of the stage's width at most, and the stage's height around the frame
+const FRAME_WIDTH = 0.7;
+const STAGE_HEIGHT = 1.5;
 
 const STYLE = `
   dialog {
@@ -19,14 +25,18 @@ const STYLE = `
   }
   h2 { margin: 0 0 4px; font-size: 1.2em; font-weight: 500; }
   .hint { margin: 0 0 12px; color: var(--secondary-text-color, #666); font-size: 0.9em; }
-  .viewport {
-    position: relative; width: 100%; margin: 0 auto; overflow: hidden; background: #000;
+  .stage {
+    position: relative; width: 100%; overflow: hidden; background: #000;
     touch-action: none; cursor: grab; user-select: none;
   }
-  .viewport:active { cursor: grabbing; }
+  .stage:active { cursor: grabbing; }
   img {
     position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0;
     pointer-events: none;
+  }
+  .viewport {
+    position: absolute; pointer-events: none; outline: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.6);
   }
   .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .actions { justify-content: flex-end; }
@@ -50,7 +60,7 @@ class OpenframeCropEditor extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._pointers = new Map();
-    this._viewportWidth = 0;
+    this._frame = { left: 0, top: 0, width: 0, height: 0 };
   }
 
   /**
@@ -68,21 +78,19 @@ class OpenframeCropEditor extends HTMLElement {
     this._crop = data.photo.crop;
     this._build(text);
     this._dialog.showModal();
-    this._viewportWidth = this._viewport.clientWidth;
-    this._draw();
+    this._layout();
   }
 
   _build(text) {
     const root = this.shadowRoot;
-    const { width, height } = this._screen;
     root.innerHTML = `
       <style>${STYLE}</style>
       <dialog aria-label="${text.cropTitle}">
         <h2>${text.cropTitle}</h2>
         <p class="hint">${text.cropHint}</p>
-        <div class="viewport" role="application" aria-label="${text.cropTitle}"
-          style="aspect-ratio: ${width} / ${height}; max-width: calc(60dvh * ${width} / ${height})">
+        <div class="stage" role="application" aria-label="${text.cropTitle}">
           <img alt="" draggable="false">
+          <div class="viewport"></div>
         </div>
         <div class="row zoom">
           <button type="button" data-action="zoomOut" aria-label="${text.cropZoomOut}"
@@ -98,6 +106,7 @@ class OpenframeCropEditor extends HTMLElement {
         </div>
       </dialog>`;
     this._dialog = root.querySelector("dialog");
+    this._stage = root.querySelector(".stage");
     this._viewport = root.querySelector(".viewport");
     this._img = root.querySelector("img");
     this._error = root.querySelector(".error");
@@ -116,13 +125,13 @@ class OpenframeCropEditor extends HTMLElement {
     }
     this._dialog.addEventListener("close", () => this.remove());
 
-    const viewport = this._viewport;
-    viewport.addEventListener("pointerdown", (e) => this._down(e));
-    viewport.addEventListener("pointermove", (e) => this._move(e));
-    viewport.addEventListener("pointerup", (e) => this._pointers.delete(e.pointerId));
-    viewport.addEventListener("pointercancel", (e) => this._pointers.delete(e.pointerId));
+    const stage = this._stage;
+    stage.addEventListener("pointerdown", (e) => this._down(e));
+    stage.addEventListener("pointermove", (e) => this._move(e));
+    stage.addEventListener("pointerup", (e) => this._pointers.delete(e.pointerId));
+    stage.addEventListener("pointercancel", (e) => this._pointers.delete(e.pointerId));
     // Not passive, so the page does not scroll while the wheel zooms
-    viewport.addEventListener(
+    stage.addEventListener(
       "wheel",
       (e) => {
         e.preventDefault();
@@ -130,18 +139,41 @@ class OpenframeCropEditor extends HTMLElement {
       },
       { passive: false },
     );
-    new ResizeObserver(() => {
-      this._viewportWidth = viewport.clientWidth;
-      this._draw();
-    }).observe(viewport);
+    new ResizeObserver(() => this._layout()).observe(stage);
+  }
+
+  /** Places the frame's shape in the middle of the stage, as large as the dialog allows. */
+  _layout() {
+    const { width, height } = this._screen;
+    const stageWidth = this._stage.clientWidth;
+    const frameWidth = Math.min(
+      stageWidth * FRAME_WIDTH,
+      ((window.innerHeight * 0.5) / STAGE_HEIGHT) * (width / height),
+    );
+    const frameHeight = (frameWidth * height) / width;
+    const stageHeight = frameHeight * STAGE_HEIGHT;
+    this._stage.style.height = `${stageHeight}px`;
+    this._frame = {
+      left: (stageWidth - frameWidth) / 2,
+      top: (stageHeight - frameHeight) / 2,
+      width: frameWidth,
+      height: frameHeight,
+    };
+    Object.assign(this._viewport.style, {
+      left: `${this._frame.left}px`,
+      top: `${this._frame.top}px`,
+      width: `${frameWidth}px`,
+      height: `${frameHeight}px`,
+    });
+    this._draw();
   }
 
   _down(e) {
     try {
-      // Keeps the drag when the finger leaves the viewport
-      this._viewport.setPointerCapture(e.pointerId);
+      // Keeps the drag when the finger leaves the stage
+      this._stage.setPointerCapture(e.pointerId);
     } catch {
-      // A pointer the browser no longer knows as active: the drag works within the viewport
+      // A pointer the browser no longer knows as active: the drag works within the stage
     }
     this._pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   }
@@ -168,7 +200,7 @@ class OpenframeCropEditor extends HTMLElement {
       this._screen,
       this._crop,
       this._fillMode,
-      this._viewportWidth,
+      this._frame.width,
       dx,
       dy,
       factor,
@@ -177,17 +209,11 @@ class OpenframeCropEditor extends HTMLElement {
   }
 
   _draw() {
-    const view = editorView(
-      this._size,
-      this._screen,
-      this._crop,
-      this._fillMode,
-      this._viewportWidth,
-    );
+    const view = editorView(this._size, this._screen, this._crop, this._fillMode, this._frame.width);
     const img = this._img;
     img.style.width = `${view.width}px`;
     img.style.height = `${view.height}px`;
-    img.style.transform = `translate(${view.left}px, ${view.top}px)`;
+    img.style.transform = `translate(${this._frame.left + view.left}px, ${this._frame.top + view.top}px)`;
     // What the frame will show, for tests and screenshots
     for (const key of ["x", "y", "width", "height", "zoom"]) {
       this._viewport.dataset[key] = String(view.shown[key]);
