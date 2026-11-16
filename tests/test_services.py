@@ -6,13 +6,15 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
+from freezegun.api import FrozenDateTimeFactory
+from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Context, HomeAssistant, ServiceResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError, Unauthorized
 from homeassistant.helpers import device_registry as dr
 from pytest_homeassistant_custom_component.common import MockConfigEntry, MockUser
 
 from custom_components.openframe.const import DOMAIN
-from tests.conftest import mock_entry
+from tests.conftest import entity_id, mock_entry, tick
 from tests.fake_frame import FRAME_ID, FakeFrame
 
 OTHER_ID = f"{FRAME_ID}-2"
@@ -263,3 +265,230 @@ async def test_no_response_unless_asked(
     frame.add_photo("a/1.jpg")
     assert await act(hass, "set_photo_comment", [device_id(hass)], comment="x") is None
     assert frame.photos[0].comment == "x"
+
+
+# -- Hiding and showing a photo --------------------------------------------------------------
+
+
+async def test_show_again(hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry) -> None:
+    """photo-actions › Hiding and showing a photo › Show again, unless its album is hidden."""
+    photo = frame.add_photo("a/1.jpg", hidden=True)
+    in_hidden_album = frame.add_photo("b/2.jpg", hidden=True)
+    frame.album_settings["b"] = True
+    await act(hass, "set_photo_hidden", [device_id(hass)], photo_id=photo.id, hidden=False)
+    assert frame.visible(photo)
+    await act(
+        hass, "set_photo_hidden", [device_id(hass)], photo_id=in_hidden_album.id, hidden=False
+    )
+    assert in_hidden_album.hidden is False
+    assert not frame.visible(in_hidden_album)
+
+
+# -- Comment of a photo ----------------------------------------------------------------------
+
+
+async def test_new_comment(hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry) -> None:
+    """photo-actions › Comment of a photo › New comment (on the photo on screen)."""
+    photo = frame.add_photo("a/1.jpg")
+    await act(hass, "set_photo_comment", [device_id(hass)], comment="Summer 2025")
+    assert photo.comment == "Summer 2025"
+    assert ("PATCH", f"/photos/{photo.id}", {"comment": "Summer 2025"}) in frame.bodies
+
+
+async def test_remove_the_comment(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """photo-actions › Comment of a photo › Remove the comment."""
+    photo = frame.add_photo("a/1.jpg", comment="Old")
+    await act(hass, "set_photo_comment", [device_id(hass)], comment="")
+    assert photo.comment is None
+    assert ("PATCH", f"/photos/{photo.id}", {"comment": None}) in frame.bodies
+
+
+async def test_comment_too_long_names_the_frames_reason(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    photo = frame.add_photo("a/1.jpg", comment="Kept")
+    with pytest.raises(HomeAssistantError) as caught:
+        await act(hass, "set_photo_comment", [device_id(hass)], comment="x" * 501)
+    assert caught.value.translation_key == "refused"
+    assert "At most 500 characters" in str(caught.value)
+    assert photo.comment == "Kept"
+
+
+# -- Section of a photo ----------------------------------------------------------------------
+
+
+async def test_focus_on_the_upper_part(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """photo-actions › Section of a photo › Focus on the upper part."""
+    photo = frame.add_photo("a/1.jpg")
+    part = photo.part
+    await act(hass, "set_photo_crop", [device_id(hass)], x=0.5, y=0.2, zoom=1)
+    section = {"x": 0.5, "y": 0.2, "zoom": 1.0}
+    assert photo.crop == section
+    assert ("PATCH", f"/photos/{photo.id}", {"crop": section}) in frame.bodies
+    # The frame shows another part from the photo's next appearance on
+    assert photo.part != part
+
+
+async def test_reset_the_section(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """photo-actions › Section of a photo › Reset."""
+    photo = frame.add_photo("a/1.jpg", crop={"x": 0.5, "y": 0.2, "zoom": 1.0})
+    response = await act(hass, "set_photo_crop", [device_id(hass)], response=True, reset=True)
+    assert photo.crop is None
+    assert ("PATCH", f"/photos/{photo.id}", {"crop": None}) in frame.bodies
+    assert response is not None
+    assert response["photos"][0]["crop"] is None
+
+
+@pytest.mark.parametrize(
+    ("values", "field"),
+    [
+        ({"x": 0.5, "y": 0.5, "zoom": 5}, "zoom"),
+        ({"x": 0.5, "y": 0.5, "zoom": 0}, "zoom"),
+        ({"x": 1.5, "y": 0.5, "zoom": 1}, "x"),
+        ({"x": 0.5, "y": -0.1, "zoom": 1}, "y"),
+    ],
+)
+async def test_section_out_of_range(
+    hass: HomeAssistant,
+    frame: FakeFrame,
+    entry: MockConfigEntry,
+    values: dict[str, float],
+    field: str,
+) -> None:
+    """photo-actions › Section of a photo › Zoom out of range: refused naming the field, the
+    frame is not asked."""
+    frame.add_photo("a/1.jpg")
+    frame.reset_requests()
+    with pytest.raises(Exception, match=f"'{field}'"):
+        await act(hass, "set_photo_crop", [device_id(hass)], **values)
+    assert frame.requests == []
+
+
+@pytest.mark.parametrize(
+    "values",
+    [{"x": 0.5}, {"x": 0.5, "y": 0.5}, {}, {"x": 0.5, "y": 0.5, "zoom": 1, "reset": True}],
+)
+async def test_whole_section_or_reset(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, values: dict[str, Any]
+) -> None:
+    frame.add_photo("a/1.jpg")
+    frame.reset_requests()
+    with pytest.raises(ServiceValidationError) as caught:
+        await act(hass, "set_photo_crop", [device_id(hass)], **values)
+    assert caught.value.translation_key == "crop_or_reset"
+    assert frame.requests == []
+
+
+# -- Deleting a photo ------------------------------------------------------------------------
+
+
+async def test_delete_a_local_photo(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """photo-actions › Deleting a photo › Local photo."""
+    photo = frame.add_photo("uploads/door.jpg")
+    other = frame.add_photo("uploads/garden.jpg")
+    await act(hass, "delete_photo", [device_id(hass)], photo_id=photo.id)
+    assert frame.photos == [other]
+
+
+async def test_delete_the_photo_on_screen(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    frame.add_photo("uploads/door.jpg")
+    await act(hass, "delete_photo", [device_id(hass)])
+    assert frame.photos == []
+
+
+async def test_photo_of_a_nextcloud_share(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """photo-actions › Deleting a photo › Photo of a Nextcloud share."""
+    photo = frame.add_photo("shared/1.jpg", source="nc1")
+    with pytest.raises(HomeAssistantError) as caught:
+        await act(hass, "delete_photo", [device_id(hass)], photo_id=photo.id)
+    assert caught.value.translation_key == "read_only_source"
+    assert "can only be hidden" in str(caught.value)
+    assert frame.photos == [photo]
+
+
+# -- Hiding an album -------------------------------------------------------------------------
+
+
+async def test_hide_a_sub_album(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    """photo-actions › Hiding an album › Hide a sub-album (its switch is disabled)."""
+    frame.add_photo("holiday/1.jpg")
+    frame.add_photo("holiday/2024/2.jpg")
+    frame.add_photo("holiday/2025/3.jpg")
+    await act(hass, "set_album_hidden", [device_id(hass)], album="holiday/2024", hidden=True)
+    assert ("PATCH", "/albums", {"name": "holiday/2024", "hidden": True}) in frame.bodies
+    assert [p.path for p in frame.visible_photos()] == ["holiday/1.jpg", "holiday/2025/3.jpg"]
+
+
+async def test_unknown_album(hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry) -> None:
+    frame.add_photo("holiday/1.jpg")
+    with pytest.raises(HomeAssistantError) as caught:
+        await act(hass, "set_album_hidden", [device_id(hass)], album="nowhere", hidden=True)
+    assert caught.value.translation_key == "album_not_found"
+
+
+async def test_frame_does_not_answer(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry
+) -> None:
+    frame.add_photo("holiday/1.jpg")
+    frame.unreachable = True
+    with pytest.raises(HomeAssistantError) as caught:
+        await act(hass, "set_album_hidden", [device_id(hass)], album="holiday", hidden=True)
+    assert caught.value.translation_key == "no_answer"
+
+
+# -- Fresh entities after a photo action -----------------------------------------------------
+
+
+async def test_hidden_by_an_action(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """photo-actions › Fresh entities after a photo action › Hidden by an action: the action
+    forces the full read, also if the library version had not moved."""
+    for number in range(120):
+        frame.add_photo(f"a/{number:03}.jpg")
+    await tick(hass, freezer)
+    visible = entity_id(hass, "sensor", "photos_visible")
+    assert hass.states.get(visible).state == "120"
+    version = frame.library_version
+    await act(hass, "set_photo_hidden", [device_id(hass)], photo_id=frame.photos[5].id, hidden=True)
+    frame.library_version = version
+    await tick(hass, freezer)
+    assert hass.states.get(visible).state == "119"
+
+
+async def test_deleted_by_an_action(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.add_photo("a/1.jpg")
+    frame.add_photo("a/2.jpg")
+    await tick(hass, freezer)
+    version = frame.library_version
+    await act(hass, "delete_photo", [device_id(hass)], photo_id=frame.photos[0].id)
+    frame.library_version = version
+    await tick(hass, freezer)
+    assert hass.states.get(entity_id(hass, "sensor", "photos")).state == "1"
+
+
+async def test_album_switch_follows_the_action_at_once(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    frame.add_photo("holiday/1.jpg")
+    await tick(hass, freezer)
+    switch = entity_id(hass, "switch", "album_holiday")
+    assert hass.states.get(switch).state == STATE_ON
+    await act(hass, "set_album_hidden", [device_id(hass)], album="holiday", hidden=True)
+    assert hass.states.get(switch).state == STATE_OFF
