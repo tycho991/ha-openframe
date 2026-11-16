@@ -27,7 +27,7 @@
 
 ## 5. Devices
 
-- [ ] 5.1 Rows in `../openframe-private/DEVICE_TEST.md` with their references: upload of a snapshot to the Frameo (`photo-actions` › Uploading photos › Camera snapshot to the frame), a section saved in the card and checked on the Lenovo (`dashboard-card` › Saving a section from the card › Save), the media browser with a library of about 1,000 photos (`media-browser` › Photos in a folder › Large album); verify: the rows exist with their references
+- [x] 5.1 Rows in `../openframe-private/DEVICE_TEST.md` with their references: upload of a snapshot to the Frameo (`photo-actions` › Uploading photos › Camera snapshot to the frame), a section saved in the card and checked on the Lenovo (`dashboard-card` › Saving a section from the card › Save), the media browser with a library of about 1,000 photos (`media-browser` › Photos in a folder › Large album); verify: the rows exist with their references
 - [ ] 5.2 Run the rows of 5.1; ask before any persistent change on a device, including uploads and deletions in the photo folder; verify: results entered, a finding in `../openframe-private/FINDINGS.md` for anything that differs
 
 ## 6. Integration
