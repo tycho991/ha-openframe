@@ -50,7 +50,7 @@ A photo action without an ID may target several frames, so its response lists on
 
 ### 5. WebSocket command for the editor
 
-`openframe/photo` (`device_id`; admin only) reads `GET /slideshow` and returns the photo on screen with its width, height, section and presentation, the screen size in the current orientation and the signed `full` URL. The editor needs these values, which are not entity attributes, and needs them fresh when it opens. The command takes no photo ID: the card opens the editor only for the photo on screen.
+`openframe/photo` (`device_id`; admin only) reads `GET /slideshow` and `GET /settings` and returns the photo on screen with its width, height, version, section and presentation and the signed `full` URL, the screen size in the current orientation and the fill mode, which the presentation formula needs for a photo without a section. The photo is `null` while none is on screen; safe mode and no answer are sent as the translated errors of the entities. The editor needs these values, which are not entity attributes, and needs them fresh when it opens. The command takes no photo ID: the card opens the editor only for the photo on screen.
 
 ### 6. Editor in the card
 
