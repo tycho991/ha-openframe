@@ -15,9 +15,12 @@ messages. The only German texts are the translations users see in
 
 ## Contract with openframe
 
-- `tests/contract/openapi.yaml` is a copy of openframe's `api/openapi.yaml` at the tag in
-  `tests/contract/OPENFRAME_VERSION`. Never edit it by hand; `tools/update-contract.sh <tag>`
-  downloads both, and CI fails if the copy differs from the tag.
+- `tests/contract/openapi.yaml` and `tests/contract/presentation-cases.json` are copies of
+  openframe's `api/openapi.yaml` and `api/fixtures/presentation-cases.json` at the tag in
+  `tests/contract/OPENFRAME_VERSION`. Never edit them by hand; `tools/update-contract.sh <tag>`
+  downloads them, and CI fails if a copy differs from the tag.
+- `renovate-artifacts` pushes only the files in its allowlist. A new file that
+  `tools/update-contract.sh` downloads also goes into that list.
 - `tests/fake_frame.py` validates every request and response against the contract. Tests run
   Home Assistant against the fake frame; do not mock the API client.
 - The integration has no runtime requirements; it uses Home Assistant's aiohttp session.

@@ -2,7 +2,7 @@
 
 ## 1. Contract and client
 
-- [ ] 1.1 `tools/update-contract.sh` also copies `api/fixtures/presentation-cases.json` to `tests/contract/` (CI's contract check and `renovate-artifacts` already run the script and compare the whole folder); verify: running the script with the pinned tag leaves `git diff` empty, and the CI step fails on an edited copy
+- [x] 1.1 `tools/update-contract.sh` also copies `api/fixtures/presentation-cases.json` to `tests/contract/` (CI's contract check runs the script and compares the whole folder; `renovate-artifacts` runs it too and needs the file in its allowlist of pushed paths); verify: running the script with the pinned tag leaves `git diff` empty, and the CI step fails on an edited copy
 - [ ] 1.2 Fake frame: `PATCH`/`DELETE /photos/{id}`, `POST /photos` (multipart, 415, 507), `GET /photos` pages with `album`, `subalbums`, `visible`, `cursor`, `PATCH /albums`, `GET /photos/{id}/image` with `ETag`/`If-None-Match`, `v` and 503; client methods for them, extending the existing `get_albums`, `patch_album` and `get_photo_image`; verify: client tests for each method against the fake frame, all requests and responses validated against the contract
 
 ## 2. Photo actions
