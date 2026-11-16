@@ -30,7 +30,7 @@ from homeassistant.helpers.service import (
 )
 
 from .api import OpenframeAuthError, OpenframeResponseError, UploadFile
-from .const import DOMAIN
+from .const import DOMAIN, PHOTO_ID_PATTERN
 from .coordinator import OpenframeCoordinator
 from .entity import run_command
 
@@ -51,8 +51,7 @@ ATTR_RESET = "reset"
 ATTR_FILE_PATH = "file_path"
 ATTR_ALBUM = "album"
 
-# openframe's photo ID: the source and the SHA-1 of the photo's path
-PHOTO_ID = vol.Match(r"^[a-z][a-z0-9]*-[0-9a-f]{40}$")
+PHOTO_ID = vol.Match(PHOTO_ID_PATTERN)
 FRACTION = vol.All(vol.Coerce(float), vol.Range(min=0, max=1))
 
 PHOTO_FIELDS = {**cv.TARGET_SERVICE_FIELDS, vol.Optional(ATTR_PHOTO_ID): PHOTO_ID}
