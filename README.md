@@ -90,6 +90,40 @@ show_caption: false
 
 After an update of the integration, reload the page in the browser once to get the new card.
 
+### Choosing the section and hiding the photo
+
+![The crop editor: the whole photo behind the frame's shape, the shown part inside](docs/crop-editor.png)
+
+For Home Assistant administrators the card shows two buttons on the photo, while a photo is on
+screen and the frame is not in safe mode; they need Home Assistant 2026.10 and openframe 0.6.0 or
+later, like the integration.
+
+- **Choose section** opens an editor for the photo on screen. The frame's shape stays fixed and the
+  whole photo moves behind it: drag to move the section; pinch, the mouse wheel or − and + zoom,
+  from the whole photo with black borders to one photo pixel per screen pixel. What is inside the
+  shape is what the frame shows. "Save" stores the section, "Automatic" removes it so that the
+  frame's fill mode applies again, "Cancel" closes without a change. The editor keeps the photo it
+  was opened for, also when the frame moves on.
+- **Hide photo** asks in the card first, then hides the photo the card shows; it does not appear in
+  the slideshow again. Show it again in the frame's web UI or with `openframe.set_photo_hidden`.
+
+## Media browser
+
+![The album "samples" of a frame in Home Assistant's media browser](docs/media-browser.png)
+
+With Home Assistant 2026.10 and openframe 0.6.0 or later, the media browser (Media in the
+sidebar) has an entry "openframe" with a folder per frame; with one frame it opens that frame's
+folder directly. A frame's folder lists "All photos" and its albums, an album its sub-albums and
+the photos directly in it, newest first and titled by their comment or file name. Hidden photos and
+albums are marked "(hidden)". A folder lists at most 500 photos and says so in its title, for
+example "holiday (500 of 1200)". Opening a photo shows it whole, at most 2048 pixels on its longest
+edge.
+
+Photos go through Home Assistant, so they are only shown to signed-in users and through links
+Home Assistant signed for an hour; the frame's address and token stay in Home Assistant. A folder
+is read from the frame when it is opened; while the frame does not answer or is in safe mode, the
+folder says so. A photo the frame cannot render is listed without a thumbnail.
+
 ## Entities
 
 Entity IDs follow the frame's name, for example `light.photo_frame_display` for a frame named
