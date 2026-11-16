@@ -152,3 +152,20 @@ async def test_install_cooldown_comes_after_the_other_refusals(frame: FakeFrame)
     status, answer = await _call(frame, "POST", "/update/install")
     assert (status, answer["error"]["code"]) == (409, "install_cooldown")
     assert frame.update["phase"] == "ready"
+
+
+async def test_upload_outside_the_contract_is_recorded(frame: FakeFrame) -> None:
+    """A multipart body is parsed for the check: an upload without the field `file` breaks it."""
+    _, token = frame.pair_directly()
+    form = aiohttp.FormData()
+    form.add_field("album", "family")
+    form.add_field("photo", b"\xff\xd8\xff", filename="a.jpg", content_type="image/jpeg")
+    async with (
+        aiohttp.ClientSession(frame.url) as session,
+        session.post(
+            "/api/v1/photos", data=form, headers={"Authorization": f"Bearer {token}"}
+        ) as response,
+    ):
+        assert response.status == 400
+    assert "file" in frame.contract_errors[0]
+    frame.contract_errors.clear()
