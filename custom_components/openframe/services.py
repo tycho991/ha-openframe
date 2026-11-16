@@ -150,16 +150,7 @@ async def _upload_photo(call: ServiceCall) -> ServiceResponse:
     if len(frames) != 1:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="upload_one_frame")
     coordinator = frames[0]
-    paths: list[str] = call.data[ATTR_FILE_PATH]
-    # Every path is checked before a file is read or anything is sent
-    for path in paths:
-        if not hass.config.is_allowed_path(path):
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="path_not_allowed",
-                translation_placeholders={"path": path},
-            )
-    files = await hass.async_add_executor_job(_read_files, paths)
+    files = await hass.async_add_executor_job(_read_files, hass, call.data[ATTR_FILE_PATH])
     photos = await _request(
         coordinator, coordinator.client.upload_photos(files, call.data.get(ATTR_ALBUM))
     )
@@ -274,8 +265,17 @@ async def _photo_refusals[T](call: Awaitable[T], not_found: str) -> T:
         ) from err
 
 
-def _read_files(paths: list[str]) -> list[UploadFile]:
-    """Read the files of an upload; runs in the executor."""
+def _read_files(hass: HomeAssistant, paths: list[str]) -> list[UploadFile]:
+    """Check the paths of an upload, then read its files; runs in the executor, as both touch
+    the disk."""
+    # Every path is checked before a file is read or anything is sent
+    for path in paths:
+        if not hass.config.is_allowed_path(path):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="path_not_allowed",
+                translation_placeholders={"path": path},
+            )
     files = []
     for path in paths:
         try:

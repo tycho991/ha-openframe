@@ -36,7 +36,7 @@ A photo action without an ID may target several frames, so its response lists on
 
 ### 2. Uploads read files in the executor
 
-`upload_photo` checks every path with `hass.config.is_allowed_path` first, then reads the files in the executor and sends one multipart request with all of them, with a 120-second timeout. The frame stores all or nothing, so a partial upload cannot happen. The content type is guessed from the file name; the frame decides what it accepts.
+`upload_photo` checks every path with `hass.config.is_allowed_path` first, then reads the files, both in the executor because both touch the disk, and sends one multipart request with all of them, with a 120-second timeout. The frame stores all or nothing, so a partial upload cannot happen. The content type is guessed from the file name; the frame decides what it accepts.
 
 ### 3. One authenticated image proxy
 
@@ -65,4 +65,4 @@ The hide button asks for confirmation inside the card (two-step button, not `win
 - [The photo on screen changes between the action's `GET /slideshow` and its `PATCH`] → The window is one round trip on the LAN; a photo change in it hits the photo that was on screen a moment before, which is what the user saw.
 - [The JavaScript copy of the presentation formula drifts from openframe's] → Both are tested against the same fixture at the pinned tag; a changed fixture fails the contract update (as for the API in `add-home-assistant-integration`, decision 7).
 - [A media browser folder with 500 photos asks the frame for 500 thumbnails] → The browser loads them lazily as they scroll into view, the proxy passes on the frame's `ETag` and `immutable` caching, and the frame renders thumbnails once.
-- [Uploads of many large files hit Home Assistant's memory] → The files are read one after another into the multipart stream; the frame refuses more than its free space allows (507).
+- [Uploads of many large files hit Home Assistant's memory] → The files of one call are held in memory until the request is sent, because reading them must happen in the executor; the action is meant for snapshots and photos of a few megabytes, and the frame refuses more than its free space allows (507).

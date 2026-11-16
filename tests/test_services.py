@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -492,3 +493,150 @@ async def test_album_switch_follows_the_action_at_once(
     assert hass.states.get(switch).state == STATE_ON
     await act(hass, "set_album_hidden", [device_id(hass)], album="holiday", hidden=True)
     assert hass.states.get(switch).state == STATE_OFF
+
+
+# -- Uploading photos ------------------------------------------------------------------------
+
+JPEG = b"\xff\xd8\xff\xe0 a photo"
+
+
+@pytest.fixture
+def media(hass: HomeAssistant, tmp_path: Path) -> Path:
+    """A folder Home Assistant may read, with a camera snapshot in it."""
+    folder = tmp_path / "media"
+    (folder / "snapshots").mkdir(parents=True)
+    (folder / "snapshots" / "door.jpg").write_bytes(JPEG)
+    hass.config.allowlist_external_dirs = {str(folder.resolve())}
+    return folder
+
+
+async def test_camera_snapshot_to_the_frame(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, media: Path
+) -> None:
+    """photo-actions › Uploading photos › Camera snapshot to the frame."""
+    response = await act(
+        hass,
+        "upload_photo",
+        [device_id(hass)],
+        response=True,
+        file_path=str(media / "snapshots" / "door.jpg"),
+        album="visitors",
+    )
+    [photo] = frame.photos
+    assert (photo.path, photo.album) == ("visitors/door.jpg", "visitors")
+    assert response == {
+        "photos": [{"id": photo.id, "path": "visitors/door.jpg", "album": "visitors"}]
+    }
+    [(_, _, body)] = [b for b in frame.bodies if b[:2] == ("POST", "/photos")]
+    assert b'filename="door.jpg"' in body
+    assert b"Content-Type: image/jpeg" in body
+    assert JPEG in body
+
+
+async def test_several_files_in_one_request(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, media: Path
+) -> None:
+    (media / "garden.png").write_bytes(b"\x89PNG a photo")
+    files = [str(media / "snapshots" / "door.jpg"), str(media / "garden.png")]
+    assert await act(hass, "upload_photo", [device_id(hass)], file_path=files) is None
+    assert [p.path for p in frame.photos] == ["door.jpg", "garden.png"]
+    assert frame.count("POST", "/photos") == 1
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["{config}/secrets.yaml", "{media}/../secrets.yaml", "/etc/passwd"],
+)
+async def test_folder_not_allowed(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, media: Path, path: str
+) -> None:
+    """photo-actions › Uploading photos › Folder not allowed: nothing is sent, also not the
+    allowed files of the same call."""
+    path = path.format(config=hass.config.config_dir, media=media)
+    frame.reset_requests()
+    with pytest.raises(ServiceValidationError) as caught:
+        await act(
+            hass,
+            "upload_photo",
+            [device_id(hass)],
+            file_path=[str(media / "snapshots" / "door.jpg"), path],
+        )
+    assert caught.value.translation_key == "path_not_allowed"
+    assert caught.value.translation_placeholders == {"path": path}
+    assert frame.requests == []
+
+
+async def test_unsupported_file(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, media: Path
+) -> None:
+    """photo-actions › Uploading photos › Unsupported file: the frame's message, nothing stored."""
+    (media / "notes.txt").write_text("not a photo")
+    files = [str(media / "snapshots" / "door.jpg"), str(media / "notes.txt")]
+    with pytest.raises(HomeAssistantError) as caught:
+        await act(hass, "upload_photo", [device_id(hass)], file_path=files)
+    assert caught.value.translation_key == "unsupported_format"
+    assert "notes.txt has no supported format" in str(caught.value)
+    assert frame.photos == []
+
+
+async def test_missing_file(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, media: Path
+) -> None:
+    frame.reset_requests()
+    missing = str(media / "snapshots" / "gone.jpg")
+    with pytest.raises(ServiceValidationError) as caught:
+        await act(hass, "upload_photo", [device_id(hass)], file_path=missing)
+    assert caught.value.translation_key == "file_not_readable"
+    assert frame.requests == []
+
+
+async def test_upload_goes_to_one_frame(
+    hass: HomeAssistant, frame: FakeFrame, entry: MockConfigEntry, other: FakeFrame, media: Path
+) -> None:
+    frame.reset_requests()
+    other.reset_requests()
+    with pytest.raises(ServiceValidationError) as caught:
+        await act(
+            hass,
+            "upload_photo",
+            [device_id(hass), device_id(hass, OTHER_ID)],
+            file_path=str(media / "snapshots" / "door.jpg"),
+        )
+    assert caught.value.translation_key == "upload_one_frame"
+    assert frame.requests == other.requests == []
+
+
+@pytest.mark.parametrize(
+    ("switch", "key"), [("storage_full", "storage_full"), ("safe_mode", "safe_mode")]
+)
+async def test_frame_refuses_the_upload(
+    hass: HomeAssistant,
+    frame: FakeFrame,
+    entry: MockConfigEntry,
+    media: Path,
+    switch: str,
+    key: str,
+) -> None:
+    setattr(frame, switch, True)
+    with pytest.raises(HomeAssistantError) as caught:
+        await act(
+            hass, "upload_photo", [device_id(hass)], file_path=str(media / "snapshots" / "door.jpg")
+        )
+    assert caught.value.translation_key == key
+    assert frame.photos == []
+
+
+async def test_upload_refreshes_the_counts(
+    hass: HomeAssistant,
+    frame: FakeFrame,
+    entry: MockConfigEntry,
+    media: Path,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    version = frame.library_version
+    await act(
+        hass, "upload_photo", [device_id(hass)], file_path=str(media / "snapshots" / "door.jpg")
+    )
+    frame.library_version = version
+    await tick(hass, freezer)
+    assert hass.states.get(entity_id(hass, "sensor", "photos")).state == "1"
