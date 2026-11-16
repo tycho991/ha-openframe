@@ -58,7 +58,7 @@ A photo action without an ID may target several frames, so its response lists on
 
 ### 7. Hide button
 
-The hide button asks for confirmation inside the card (two-step button, not `window.confirm`, which kiosk browsers often block), then calls `openframe.set_photo_hidden` with the frame as target and no photo ID, and shows "Photo hidden" for a few seconds.
+The hide button asks for confirmation inside the card (two-step button, not `window.confirm`, which kiosk browsers often block), then calls `openframe.set_photo_hidden` with the frame as target and shows "Photo hidden" for a few seconds. It passes the `photo_id` of the photo sensor's attributes as the card showed it when the hide button was pressed, so that the photo the user confirmed is hidden even if the frame moved on in the meantime; without the sensor it passes no photo ID and the photo on screen is hidden.
 
 ## Risks / Trade-offs
 

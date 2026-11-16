@@ -46,6 +46,11 @@ const STRINGS = {
     cropAutomatic: "Automatic",
     cropSave: "Save",
     cropCancel: "Cancel",
+    hide: "Hide photo",
+    hideConfirm: "Hide this photo? It will not appear in the slideshow again.",
+    hideYes: "Hide",
+    hideNo: "Cancel",
+    hidden: "Photo hidden",
   },
   de: {
     displayOff: "Display aus",
@@ -74,6 +79,11 @@ const STRINGS = {
     cropAutomatic: "Automatisch",
     cropSave: "Speichern",
     cropCancel: "Abbrechen",
+    hide: "Foto ausblenden",
+    hideConfirm: "Dieses Foto ausblenden? Es erscheint nicht mehr in der Diashow.",
+    hideYes: "Ausblenden",
+    hideNo: "Abbrechen",
+    hidden: "Foto ausgeblendet",
   },
 };
 
@@ -195,6 +205,8 @@ export function cardState(hass, config) {
 
   let caption = null;
   const sensor = state("caption");
+  // The photo the card shows, so that hiding hits it even if the frame changed in the meantime
+  const photoId = (sensor && !ABSENT.has(sensor.state) && sensor.attributes?.photo_id) || null;
   if (config.show_caption !== false && sensor && !ABSENT.has(sensor.state)) {
     caption = { name: sensor.state, album: sensor.attributes?.album || null };
   }
@@ -234,6 +246,7 @@ export function cardState(hass, config) {
     badges,
     caption,
     buttons,
+    photoId,
     // Changing photos is for administrators, and only while a photo is on screen and the frame is
     // itself
     tools: photoTools(Boolean(photo) && !safeMode && hass.user?.is_admin === true, text),
@@ -242,7 +255,10 @@ export function cardState(hass, config) {
 
 /** The buttons on the photo that change it; all follow the same visibility rules. */
 function photoTools(shown, text) {
-  return { crop: { shown, enabled: true, label: text.crop } };
+  return {
+    crop: { shown, enabled: true, label: text.crop },
+    hide: { shown, enabled: true, label: text.hide },
+  };
 }
 
 /** The service call of a button: domain, service and entity. */

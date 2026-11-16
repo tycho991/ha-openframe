@@ -264,3 +264,41 @@ test("the crop texts exist in both languages", () => {
   }
   assert.equal(strings("de").cropAutomatic, "Automatisch");
 });
+
+// -- Hiding the photo on screen from the card ------------------------------------------------
+
+test("the hide button follows the crop button's visibility", () => {
+  const cases = {
+    admin: (c) => (c.user = ADMIN),
+    nonAdmin: (c) => (c.user = { ...ADMIN, is_admin: false }),
+    noPhoto: (c) => {
+      c.user = ADMIN;
+      setState(c, IMAGE, "unknown");
+    },
+    safeMode: (c) => {
+      c.user = ADMIN;
+      setState(c, SAFE_MODE, "on");
+    },
+  };
+  for (const [name, change] of Object.entries(cases)) {
+    const { tools } = cardState(hass(change), config);
+    assert.equal(tools.hide.shown, tools.crop.shown, name);
+    assert.equal(tools.hide.shown, name === "admin", name);
+  }
+  assert.equal(cardState(hass((c) => (c.user = ADMIN)), config).tools.hide.label, "Hide photo");
+});
+
+test("the card knows the ID of the photo it shows, for hiding exactly that one", () => {
+  const h = hass((c) => setState(c, CAPTION, "Summer 2025", { photo_id: "local-abc" }));
+  assert.equal(cardState(h, config).photoId, "local-abc");
+  const gone = hass((c) => setState(c, CAPTION, "unavailable", { photo_id: "local-abc" }));
+  assert.equal(cardState(gone, config).photoId, null);
+});
+
+test("the hide texts exist in both languages", () => {
+  for (const key of ["hide", "hideConfirm", "hideYes", "hideNo", "hidden"]) {
+    assert.ok(strings("en")[key], key);
+    assert.ok(strings("de")[key], key);
+  }
+  assert.equal(strings("de").hidden, "Foto ausgeblendet");
+});
