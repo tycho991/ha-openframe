@@ -7,7 +7,8 @@
   "config_flow": true,
   "dependencies": [
     "frontend",
-    "http"
+    "http",
+    "media_source"
   ],
   "documentation": "https://github.com/tycho991/ha-openframe#readme",
   "integration_type": "device",

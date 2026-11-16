@@ -3,8 +3,10 @@
 #
 #   tools/update-contract.sh v0.5.0
 #
-# Writes tests/contract/openapi.yaml and tests/contract/OPENFRAME_VERSION. CI runs it with the
-# pinned tag and fails if the copy differs; Renovate's branches run it with the new tag.
+# Writes tests/contract/openapi.yaml, tests/contract/presentation-cases.json (the test cases of
+# openframe's presentation formula, for the card's crop editor) and tests/contract/OPENFRAME_VERSION.
+# CI runs it with the pinned tag and fails if the copy differs; Renovate's branches run it with the
+# new tag.
 set -euo pipefail
 
 if [ $# -ne 1 ] || ! [[ $1 =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -17,6 +19,8 @@ base=https://raw.githubusercontent.com/tycho991/openframe/$tag
 
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
-curl --fail --silent --show-error --location --retry 3 "$base/api/openapi.yaml" -o "$tmp"
-mv "$tmp" "$dir/openapi.yaml"
+for file in openapi.yaml fixtures/presentation-cases.json; do
+  curl --fail --silent --show-error --location --retry 3 "$base/api/$file" -o "$tmp"
+  mv "$tmp" "$dir/$(basename "$file")"
+done
 echo "$tag" > "$dir/OPENFRAME_VERSION"

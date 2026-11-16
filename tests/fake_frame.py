@@ -10,17 +10,21 @@ administrator), ``display["brightness"]`` (``available``: the permission to modi
 settings, ``autoSupported``: a light sensor, ``dimmed``: a dim period of the schedule),
 ``outdated`` (an app before the slideshow API, answering 404 for ``/slideshow``),
 ``before_brightness`` (an app before openframe 0.6.0, whose display state has no brightness),
-``revoke_all()`` (every token rejected), ``unreachable`` (connections are dropped) and
-``not_json`` (an answer that is not JSON) and ``delay`` (a slow answer).
+``revoke_all()`` (every token rejected), ``unreachable`` (connections are dropped),
+``not_json`` (an answer that is not JSON), ``delay`` (a slow answer), ``storage_full`` (an upload
+refused with 507) and ``FakePhoto.quarantined`` (its image refused with 503).
 """
 
 from __future__ import annotations
 
 import asyncio
 import copy
+import email
+import email.policy
 import hashlib
 import itertools
 import json
+import re
 import secrets
 from collections import Counter
 from dataclasses import dataclass, field
@@ -53,7 +57,13 @@ ERROR_MESSAGES = {
     "validation_failed": "Invalid request.",
     "update_not_ready": "No update is ready.",
     "install_not_allowed": "Android does not allow openframe to install apps.",
+    "read_only_source": "This photo comes from a remote source and cannot be deleted here.",
+    "insufficient_storage": "Not enough storage.",
+    "render_failed": "The image could not be rendered",
 }
+
+# What the fake frame accepts as an image: the first bytes of a JPEG or a PNG
+IMAGE_MAGIC = (b"\xff\xd8\xff", b"\x89PNG")
 
 _openapi: OpenAPI | None = None
 
@@ -62,12 +72,26 @@ def contract() -> OpenAPI:
     """The pinned contract, parsed once per test session."""
     global _openapi
     if _openapi is None:
-        # A JPEG is `type: string, format: binary`; hand the validator the bytes as a string
+        # A JPEG answer and the file parts of an upload (`application/octet-stream` by default) are
+        # `type: string, format: binary`; hand the validator the bytes as a string
         config = Config(
-            extra_media_type_deserializers={"image/jpeg": lambda b: b.decode("latin-1")}
+            extra_media_type_deserializers={
+                "image/jpeg": lambda b: b.decode("latin-1"),
+                "application/octet-stream": lambda b: b.decode("latin-1"),
+            }
         )
         _openapi = OpenAPI.from_file_path(str(CONTRACT), config=config)
     return _openapi
+
+
+class OpenAPIRequest(AIOHTTPOpenAPIWebRequest):
+    """The request for the validator, with the boundary a multipart body needs to be parsed."""
+
+    __slots__ = ()
+
+    @property
+    def content_type(self) -> str:
+        return self.request.headers.get("Content-Type", self.request.content_type)
 
 
 def describe(error: BaseException) -> str:
@@ -99,6 +123,8 @@ class FakePhoto:
     version: int = 1
     # Key of the shown part; changes when the section or the settings that shape it change
     part: str = "a1"
+    crop: dict[str, float] | None = None
+    quarantined: bool = False
 
     @property
     def id(self) -> str:
@@ -199,6 +225,8 @@ class FakeFrame:
     reject_slideshow: bool = False
     # Refuse install requests as the frame does for 30 minutes after a declined dialog
     install_cooldown: bool = False
+    # Refuse uploads as the frame does when less than 100 MB would remain free
+    storage_full: bool = False
     # Index into the visible photos of the photo on screen, None while none is shown
     current: int | None = 0
 
@@ -358,13 +386,13 @@ class FakeFrame:
             "album": photo.album,
             "hidden": photo.hidden,
             "visible": self.visible(photo),
-            "quarantined": False,
+            "quarantined": photo.quarantined,
             "width": 4000,
             "height": 3000,
             "takenAt": photo.taken_at,
             "fileSize": 2_500_000,
             "version": photo.version,
-            "crop": None,
+            "crop": photo.crop,
             "presentation": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0, "zoom": 1.0},
             "urls": {
                 "thumb": f"{base}?size=thumb&v={photo.version}&t={signature}",
@@ -453,7 +481,7 @@ class FakeFrame:
         if self.before_brightness and (request.method, path) == ("GET", "/display"):
             # An app before openframe 0.6.0: its contract has no brightness in the display state
             return web.json_response({k: v for k, v in self.display.items() if k != "brightness"})
-        openapi_request = AIOHTTPOpenAPIWebRequest(request, body=body or None)
+        openapi_request = OpenAPIRequest(request, body=body or None)
         try:
             contract().validate_request(openapi_request)
         except Exception as exc:
@@ -483,7 +511,7 @@ class FakeFrame:
         if (method, path) not in public and not self._authorized(request):
             return error(401, "unauthorized")
         raw = await request.read()
-        body = json.loads(raw) if raw else None
+        body = json.loads(raw) if raw and request.content_type == "application/json" else None
         match (method, parts):
             case ("GET", ["info"]):
                 return web.json_response(self.info)
@@ -534,14 +562,21 @@ class FakeFrame:
                 return web.json_response(self.albums_json())
             case ("GET", ["photos"]):
                 return self._photos(request)
-            case ("GET", ["photos", pid, "image"]):
-                photo = next((p for p in self.photos if p.id == pid), None)
+            case ("POST", ["photos"]):
+                return self._upload(request.headers["Content-Type"], raw)
+            case ("PATCH", ["photos", pid]):
+                return self._patch_photo(pid, body)
+            case ("DELETE", ["photos", pid]):
+                photo = self.photo(pid)
                 if photo is None:
                     return error(404, "not_found")
-                if self.safe_mode:
-                    return error(503, "safe_mode")
-                size = request.query["size"]
-                return web.Response(body=image_bytes(photo, size), content_type="image/jpeg")
+                if photo.source != "local":
+                    return error(409, "read_only_source")
+                self.photos.remove(photo)
+                self.library_version += 1
+                return web.Response(status=204)
+            case ("GET", ["photos", pid, "image"]):
+                return self._image(request, pid)
             case ("GET", ["sources"]):
                 return web.json_response({"sources": self.sources})
             case ("POST", ["sources", source_id, "sync"]):
@@ -690,19 +725,124 @@ class FakeFrame:
             self._apply_brightness()
         return web.json_response(self.settings)
 
+    def photo(self, pid: str) -> FakePhoto | None:
+        return next((p for p in self.photos if p.id == pid), None)
+
     def _photos(self, request: web.Request) -> web.Response:
+        query = request.query
         selected = self.photos
-        if "visible" in request.query:
-            wanted = request.query["visible"] == "true"
+        if "album" in query:
+            album = query["album"]
+            if query.get("subalbums") == "false":
+                selected = [p for p in selected if p.album == album]
+            else:
+                selected = [
+                    p
+                    for p in selected
+                    if p.album == album or (p.album or "").startswith(album + "/")
+                ]
+        if "visible" in query:
+            wanted = query["visible"] == "true"
             selected = [p for p in selected if self.visible(p) == wanted]
-        limit = int(request.query.get("limit", "100"))
-        items = [self.photo_json(p) for p in selected[:limit]]
+        sort = query.get("sort", "date_desc")
+        key = (lambda p: p.taken_at) if sort.startswith("date") else (lambda p: p.path)
+        selected = sorted(selected, key=key, reverse=sort.endswith("desc"))
+        # The cursor is the offset of the next page; the real frame's cursor is opaque
+        start = int(query.get("cursor", "0"))
+        limit = int(query.get("limit", "100"))
+        page = selected[start : start + limit]
+        more = start + limit < len(selected)
         return web.json_response(
             {
-                "items": items,
+                "items": [self.photo_json(p) for p in page],
                 "total": len(selected),
-                "nextCursor": "next" if len(selected) > limit else None,
+                "nextCursor": str(start + limit) if more else None,
             }
+        )
+
+    def _patch_photo(self, pid: str, body: dict[str, Any]) -> web.Response:
+        photo = self.photo(pid)
+        if photo is None:
+            return error(404, "not_found")
+        # The whole patch is checked before it acts, as openframe does
+        comment = photo.comment
+        if "comment" in body:
+            # Surrounding whitespace goes, runs of control characters become one space
+            text = re.sub(r"[\x00-\x1f\x7f]+", " ", body["comment"] or "").strip()
+            if len(text) > 500:
+                return error(400, "validation_failed", {"comment": "At most 500 characters."})
+            comment = text or None
+        photo.comment = comment
+        if "hidden" in body:
+            photo.hidden = body["hidden"]
+        if "crop" in body and body["crop"] != photo.crop:
+            photo.crop = body["crop"]
+            # A new section shows a new part
+            photo.part = hashlib.sha1(json.dumps(photo.crop).encode()).hexdigest()[:8]
+        if "quarantined" in body:
+            photo.quarantined = False
+        self.library_version += 1
+        return web.json_response(self.photo_json(photo))
+
+    def _upload(self, content_type: str, raw: bytes) -> web.Response:
+        if self.safe_mode:
+            return error(503, "safe_mode")
+        # The header with its boundary in front of the body makes it a message the parser reads
+        message = email.message_from_bytes(
+            f"Content-Type: {content_type}\r\n\r\n".encode() + raw, policy=email.policy.HTTP
+        )
+        album: str | None = None
+        files: list[tuple[str, bytes]] = []
+        for part in message.iter_parts():
+            name = part.get_param("name", header="content-disposition")
+            if name == "album":
+                levels = str(part.get_content()).split("/")
+                album = "/".join(lv.strip() for lv in levels if lv.strip() not in ("", ".", ".."))
+            elif name == "file" and part.get_filename():
+                files.append((part.get_filename(), part.get_payload(decode=True)))
+        if not files:
+            # openapi-core reads a missing array field of a multipart body as an empty list and
+            # never sees that `file` is required; the fake frame records it in its place
+            self.contract_errors.append("request POST /photos: the required field file is missing")
+            return error(400, "validation_failed", {"file": "No file in the field file"})
+        for filename, content in files:
+            if not content.startswith(IMAGE_MAGIC):
+                return error(
+                    415, "unsupported_format", message=f"{filename} has no supported format"
+                )
+        if self.storage_full:
+            return error(507, "insufficient_storage")
+        stored = []
+        for filename, _ in files:
+            path = f"{album}/{filename}" if album else filename
+            # Concurrent uploads with the same name do not overwrite each other
+            stem, dot, ext = path.rpartition(".")
+            n = 1
+            while any(p.path == path for p in self.photos):
+                path = f"{stem}-{n}{dot}{ext}"
+                n += 1
+            stored.append(self.add_photo(path, taken_at=NOW))
+        return web.json_response({"photos": [self.photo_json(p) for p in stored]}, status=201)
+
+    def _image(self, request: web.Request, pid: str) -> web.Response:
+        if self.safe_mode:
+            return error(503, "safe_mode")
+        photo = self.photo(pid)
+        if photo is None:
+            return error(404, "not_found")
+        size = request.query["size"]
+        part = photo.part if size == "display" else None
+        etag = f'"{photo.id}-{photo.version}-{size}{"-" + part if part else ""}"'
+        # Immutable only for the URL of what is current, as openframe does
+        current = request.query.get("v") == str(photo.version) and request.query.get("p") == part
+        cache_control = "private, max-age=31536000, immutable" if current else "private, no-cache"
+        headers = {"ETag": etag, "Cache-Control": cache_control}
+        if request.headers.get("If-None-Match") == etag:
+            return web.Response(status=304, headers=headers)
+        if photo.quarantined:
+            return error(503, "render_failed")
+        return web.Response(
+            body=image_bytes(photo, size), content_type="image/jpeg", headers=headers
         )
 
 
@@ -721,13 +861,18 @@ OPERATIONS = {
     ("GET", "albums"): "listAlbums",
     ("PATCH", "albums"): "patchAlbum",
     ("GET", "photos"): "listPhotos",
+    ("POST", "photos"): "uploadPhotos",
+    ("PATCH", "photos"): "patchPhoto",
+    ("DELETE", "photos"): "deletePhoto",
     ("GET", "sources"): "listSources",
     ("GET", "update"): "getUpdate",
 }
 
 
-def error(status: int, code: str, fields: dict[str, str] | None = None) -> web.Response:
-    body: dict[str, Any] = {"code": code, "message": ERROR_MESSAGES.get(code, code)}
+def error(
+    status: int, code: str, fields: dict[str, str] | None = None, *, message: str | None = None
+) -> web.Response:
+    body: dict[str, Any] = {"code": code, "message": message or ERROR_MESSAGES.get(code, code)}
     if fields:
         body["fields"] = fields
     return web.json_response({"error": body}, status=status)

@@ -1,6 +1,7 @@
 // The openframe dashboard card and its editor: plain web components without a build step.
 // What they show comes from model.js; this file only renders it and sends the button presses.
 
+import "./crop-editor.js";
 import {
   action,
   cardState,
@@ -18,6 +19,8 @@ const ICONS = {
   next: "mdi:skip-next",
   displayOn: "mdi:monitor",
   displayOff: "mdi:monitor-off",
+  crop: "mdi:crop",
+  hide: "mdi:eye-off",
 };
 
 // Shown in a button when the frontend's `ha-icon` is not defined
@@ -28,7 +31,12 @@ const FALLBACK = {
   [ICONS.next]: "⏭",
   [ICONS.displayOn]: "☀",
   [ICONS.displayOff]: "☾",
+  [ICONS.crop]: "⛶",
+  [ICONS.hide]: "⊘",
 };
+
+// Seconds the card says "Photo hidden"
+const NOTICE_SECONDS = 4;
 
 const STYLE = `
   [hidden] { display: none !important; }
@@ -49,6 +57,24 @@ const STYLE = `
     color: #bbb;
   }
   .badges { position: absolute; top: 8px; left: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+  .tools button {
+    width: 40px; height: 40px; background: rgba(0, 0, 0, 0.55); color: #fff;
+    --mdc-icon-size: 22px;
+  }
+  .tools button:hover:not(:disabled) { background: rgba(0, 0, 0, 0.75); }
+  .confirm, .notice {
+    position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 8px 12px;
+    border-radius: 12px; background: rgba(0, 0, 0, 0.75); color: #fff;
+  }
+  .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .confirm span { flex: 1 1 12em; }
+  .confirm button, .confirm button:hover:not(:disabled) {
+    width: auto; height: 36px; padding: 0 14px; border-radius: 18px; font-size: 1em;
+    color: #fff; border: 1px solid rgba(255, 255, 255, 0.6); background: none;
+  }
+  .confirm button[data-action="hideYes"] { background: var(--error-color, #db4437); border-color: transparent; }
+  .notice { text-align: center; }
   .badge {
     padding: 2px 8px; border-radius: 12px; font-size: 0.85em;
     background: rgba(0, 0, 0, 0.6); color: #fff;
@@ -120,6 +146,14 @@ class OpenframeCard extends HTMLElement {
             <img alt="" hidden>
             <div class="empty" hidden></div>
             <div class="badges"></div>
+            <div class="tools">
+              <button data-action="hide"></button><button data-action="crop"></button>
+            </div>
+            <div class="confirm" role="alertdialog" hidden>
+              <span></span>
+              <button data-action="hideNo"></button><button data-action="hideYes"></button>
+            </div>
+            <div class="notice" role="status" hidden></div>
           </div>
           <div class="caption" hidden><div class="name"></div><div class="album"></div></div>
           <div class="controls">
@@ -187,6 +221,21 @@ class OpenframeCard extends HTMLElement {
       album.hidden = !state.caption.album;
     }
 
+    this._tools = state.tools;
+    this._photoId = state.photoId;
+    this._button("crop", state.tools.crop, ICONS.crop);
+    this._button("hide", state.tools.hide, ICONS.hide);
+    const text = strings(languageOf(this._hass));
+    if (!state.tools.hide.shown) {
+      // A photo that is gone, or a frame in safe mode, cannot be hidden from the card any more
+      this._confirming = undefined;
+    }
+    const confirm = root.querySelector(".confirm");
+    confirm.hidden = this._confirming === undefined;
+    confirm.querySelector("span").textContent = text.hideConfirm;
+    root.querySelector('[data-action="hideYes"]').textContent = text.hideYes;
+    root.querySelector('[data-action="hideNo"]').textContent = text.hideNo;
+
     this._buttons = state.buttons;
     const controls = root.querySelector(".controls");
     controls.hidden = state.buttons === null;
@@ -219,6 +268,14 @@ class OpenframeCard extends HTMLElement {
   }
 
   async _press(name) {
+    if (name === "crop") {
+      await this._openEditor();
+      return;
+    }
+    if (name === "hide" || name === "hideNo" || name === "hideYes") {
+      await this._hide(name);
+      return;
+    }
     if (!this._buttons || !this._hass) {
       return;
     }
@@ -228,6 +285,76 @@ class OpenframeCard extends HTMLElement {
     } catch {
       // The frontend shows the error, translated by the integration, as a toast
     }
+  }
+
+  /** Opens the crop editor for the photo the frame shows now; it keeps that photo. */
+  async _openEditor() {
+    if (!this._tools?.crop.shown || !this._hass) {
+      return;
+    }
+    const hass = this._hass;
+    const deviceId = this._config.device_id;
+    let data;
+    try {
+      data = await hass.callWS({ type: "openframe/photo", device_id: deviceId });
+    } catch (err) {
+      this._notify(err?.message ?? String(err));
+      return;
+    }
+    if (!data.photo) {
+      return;
+    }
+    const editor = document.createElement("openframe-crop-editor");
+    this.shadowRoot.appendChild(editor);
+    editor.open({ hass, deviceId, data, text: strings(languageOf(hass)) });
+  }
+
+  /**
+   * Hiding in two steps inside the card, as kiosk browsers often block `window.confirm`: the
+   * hide button asks, "Hide" hides the photo the card showed when it was pressed.
+   */
+  async _hide(step) {
+    if (step === "hide") {
+      if (this._tools?.hide.shown) {
+        // null: the card does not know the photo's ID; the frame's photo on screen is hidden
+        this._confirming = this._photoId;
+      }
+    } else if (step === "hideNo") {
+      this._confirming = undefined;
+    } else if (this._confirming !== undefined && this._hass) {
+      const photoId = this._confirming;
+      this._confirming = undefined;
+      this._render();
+      try {
+        await this._hass.callService(
+          "openframe",
+          "set_photo_hidden",
+          { hidden: true, ...(photoId ? { photo_id: photoId } : {}) },
+          { device_id: this._config.device_id },
+        );
+        this._showNotice(strings(languageOf(this._hass)).hidden);
+      } catch (err) {
+        this._notify(err?.message ?? String(err));
+      }
+      return;
+    }
+    this._render();
+  }
+
+  _showNotice(message) {
+    const notice = this.shadowRoot.querySelector(".notice");
+    notice.textContent = message;
+    notice.hidden = false;
+    clearTimeout(this._noticeTimer);
+    this._noticeTimer = setTimeout(() => {
+      notice.hidden = true;
+    }, NOTICE_SECONDS * 1000);
+  }
+
+  _notify(message) {
+    this.dispatchEvent(
+      new CustomEvent("hass-notification", { detail: { message }, bubbles: true, composed: true }),
+    );
   }
 }
 

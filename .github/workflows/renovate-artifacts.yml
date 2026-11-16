@@ -38,7 +38,7 @@ jobs:
           git diff --cached --stat
           if git diff --cached --quiet; then exit 0; fi
           paths=$(git diff --cached --name-only --no-renames)
-          outside=$(grep -vE '^tests/contract/(openapi\.yaml|OPENFRAME_VERSION)$' <<<"$paths" || true)
+          outside=$(grep -vE '^tests/contract/(openapi\.yaml|presentation-cases\.json|OPENFRAME_VERSION)$' <<<"$paths" || true)
           bad=$(git diff --cached --raw --no-renames | awk '$2 != "100644"')
           if [ -n "$outside" ] || [ -n "$bad" ]; then
             echo "The download touches more than the contract:" >&2

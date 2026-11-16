@@ -37,6 +37,20 @@ const STRINGS = {
     title: "Title",
     showCaption: "Show caption",
     pickerDescription: "The photo on screen and the controls of a frame.",
+    crop: "Choose section",
+    cropTitle: "Photo section",
+    cropHint:
+      "Drag to move the section; pinch, the mouse wheel or − and + zoom. The frame shows what is inside.",
+    cropZoomIn: "Zoom in",
+    cropZoomOut: "Zoom out",
+    cropAutomatic: "Automatic",
+    cropSave: "Save",
+    cropCancel: "Cancel",
+    hide: "Hide photo",
+    hideConfirm: "Hide this photo? It will not appear in the slideshow again.",
+    hideYes: "Hide",
+    hideNo: "Cancel",
+    hidden: "Photo hidden",
   },
   de: {
     displayOff: "Display aus",
@@ -56,6 +70,20 @@ const STRINGS = {
     title: "Titel",
     showCaption: "Bildunterschrift anzeigen",
     pickerDescription: "Das angezeigte Foto und die Bedienung eines Rahmens.",
+    crop: "Ausschnitt wählen",
+    cropTitle: "Fotoausschnitt",
+    cropHint:
+      "Ziehen verschiebt den Ausschnitt; Spreizen, das Mausrad oder − und + zoomen. Der Rahmen zeigt, was innen liegt.",
+    cropZoomIn: "Vergrößern",
+    cropZoomOut: "Verkleinern",
+    cropAutomatic: "Automatisch",
+    cropSave: "Speichern",
+    cropCancel: "Abbrechen",
+    hide: "Foto ausblenden",
+    hideConfirm: "Dieses Foto ausblenden? Es erscheint nicht mehr in der Diashow.",
+    hideYes: "Ausblenden",
+    hideNo: "Abbrechen",
+    hidden: "Foto ausgeblendet",
   },
 };
 
@@ -150,6 +178,7 @@ export function cardState(hass, config) {
       badges: [text.unavailable],
       caption: null,
       buttons: null,
+      tools: photoTools(false, text),
     };
   }
 
@@ -176,6 +205,8 @@ export function cardState(hass, config) {
 
   let caption = null;
   const sensor = state("caption");
+  // The photo the card shows, so that hiding hits it even if the frame changed in the meantime
+  const photoId = (sensor && !ABSENT.has(sensor.state) && sensor.attributes?.photo_id) || null;
   if (config.show_caption !== false && sensor && !ABSENT.has(sensor.state)) {
     caption = { name: sensor.state, album: sensor.attributes?.album || null };
   }
@@ -215,6 +246,18 @@ export function cardState(hass, config) {
     badges,
     caption,
     buttons,
+    photoId,
+    // Changing photos is for administrators, and only while a photo is on screen and the frame is
+    // itself
+    tools: photoTools(Boolean(photo) && !safeMode && hass.user?.is_admin === true, text),
+  };
+}
+
+/** The buttons on the photo that change it; all follow the same visibility rules. */
+function photoTools(shown, text) {
+  return {
+    crop: { shown, enabled: true, label: text.crop },
+    hide: { shown, enabled: true, label: text.hide },
   };
 }
 

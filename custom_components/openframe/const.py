@@ -14,3 +14,6 @@ DEVICE_NAME: Final = "Home Assistant"
 # The first openframe release with the brightness in the display state; older frames are refused
 MIN_OPENFRAME_VERSION: Final = "0.6.0"
 API_VERSION: Final = 1
+
+# openframe's photo ID: the source and the SHA-1 of the photo's path
+PHOTO_ID_PATTERN: Final = r"^[a-z][a-z0-9]*-[0-9a-f]{40}$"

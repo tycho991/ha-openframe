@@ -289,12 +289,142 @@
     },
     "refused": {
       "message": "Der Rahmen hat den Befehl abgelehnt: {message}"
+    },
+    "no_frame": {
+      "message": "Die Aktion wählt keinen eingerichteten und laufenden openframe-Rahmen."
+    },
+    "photo_id_one_frame": {
+      "message": "Eine Foto-ID gehört zu einem Rahmen: Wähle genau einen Rahmen, oder lass die Foto-ID weg, um das angezeigte Foto zu ändern."
+    },
+    "upload_one_frame": {
+      "message": "Ein Upload geht an einen Rahmen: Wähle genau einen Rahmen."
+    },
+    "no_photo_on_screen": {
+      "message": "{frame} zeigt kein Foto."
+    },
+    "photo_not_found": {
+      "message": "Der Rahmen hat kein Foto mit dieser ID."
+    },
+    "album_not_found": {
+      "message": "Der Rahmen hat kein Album mit diesem Pfad."
+    },
+    "read_only_source": {
+      "message": "Fotos einer entfernten Quelle können nur ausgeblendet, nicht gelöscht werden."
+    },
+    "unsupported_format": {
+      "message": "Der Rahmen hat die Dateien nicht gespeichert: {message}"
+    },
+    "storage_full": {
+      "message": "Der Rahmen hat die Dateien nicht gespeichert: Es ist nicht genug Speicher frei."
+    },
+    "path_not_allowed": {
+      "message": "Home Assistant darf {path} nicht lesen. Trage seinen Ordner in allowlist_external_dirs ein."
+    },
+    "file_not_readable": {
+      "message": "{path} kann nicht gelesen werden."
+    },
+    "crop_or_reset": {
+      "message": "Gib x, y und Zoom für einen Ausschnitt an, oder „Zurücksetzen“, um ihn zu entfernen."
     }
   },
   "issues": {
     "outdated_frame": {
       "title": "{name} braucht ein neueres openframe",
       "description": "Auf {name} fehlt etwas, das diese Integration braucht, zum Beispiel weil darauf ein älteres openframe installiert wurde. Aktualisiere den Rahmen auf openframe {version} oder neuer; Home Assistant verbindet sich danach von selbst wieder."
+    }
+  },
+  "services": {
+    "set_photo_hidden": {
+      "name": "Foto ausblenden",
+      "description": "Blendet ein Foto in der Diashow aus oder wieder ein.",
+      "fields": {
+        "photo_id": {
+          "name": "Foto-ID",
+          "description": "ID des Fotos, wie im Medienbrowser oder in der Antwort einer Aktion. Ohne sie ändert die Aktion das Foto, das jeder gewählte Rahmen gerade zeigt; mit ihr wähle genau einen Rahmen."
+        },
+        "hidden": {
+          "name": "Ausgeblendet",
+          "description": "An blendet das Foto aus, aus blendet es wieder ein, außer sein Album ist ausgeblendet."
+        }
+      }
+    },
+    "set_photo_comment": {
+      "name": "Fotokommentar setzen",
+      "description": "Setzt den Kommentar, den der Rahmen in der Beschriftung eines Fotos zeigt.",
+      "fields": {
+        "photo_id": {
+          "name": "Foto-ID",
+          "description": "ID des Fotos, wie im Medienbrowser oder in der Antwort einer Aktion. Ohne sie ändert die Aktion das Foto, das jeder gewählte Rahmen gerade zeigt; mit ihr wähle genau einen Rahmen."
+        },
+        "comment": {
+          "name": "Kommentar",
+          "description": "Der neue Kommentar; ein leerer Kommentar entfernt ihn."
+        }
+      }
+    },
+    "set_photo_crop": {
+      "name": "Fotoausschnitt setzen",
+      "description": "Setzt den Teil eines Fotos, den der Rahmen zeigt, oder entfernt ihn, sodass wieder der Füllmodus gilt.",
+      "fields": {
+        "photo_id": {
+          "name": "Foto-ID",
+          "description": "ID des Fotos, wie im Medienbrowser oder in der Antwort einer Aktion. Ohne sie ändert die Aktion das Foto, das jeder gewählte Rahmen gerade zeigt; mit ihr wähle genau einen Rahmen."
+        },
+        "x": {
+          "name": "Fokus x",
+          "description": "Waagrechter Fokuspunkt, von 0 (linker Rand) bis 1 (rechter Rand)."
+        },
+        "y": {
+          "name": "Fokus y",
+          "description": "Senkrechter Fokuspunkt, von 0 (oberer Rand) bis 1 (unterer Rand)."
+        },
+        "zoom": {
+          "name": "Zoom",
+          "description": "1 füllt den Bildschirm, unter 1 zeigt mehr vom Foto mit Rändern, über 1 einen Ausschnitt; höchstens 4."
+        },
+        "reset": {
+          "name": "Zurücksetzen",
+          "description": "Entfernt den Ausschnitt, statt einen zu setzen."
+        }
+      }
+    },
+    "delete_photo": {
+      "name": "Foto löschen",
+      "description": "Löscht ein Foto aus dem eigenen Ordner des Rahmens. Fotos einer entfernten Quelle können nur ausgeblendet werden.",
+      "fields": {
+        "photo_id": {
+          "name": "Foto-ID",
+          "description": "ID des Fotos, wie im Medienbrowser oder in der Antwort einer Aktion. Ohne sie ändert die Aktion das Foto, das jeder gewählte Rahmen gerade zeigt; mit ihr wähle genau einen Rahmen."
+        }
+      }
+    },
+    "upload_photo": {
+      "name": "Foto hochladen",
+      "description": "Lädt Dateien aus Ordnern, die Home Assistant lesen darf (allowlist_external_dirs), auf einen Rahmen.",
+      "fields": {
+        "file_path": {
+          "name": "Dateien",
+          "description": "Pfade der hochzuladenden Dateien."
+        },
+        "album": {
+          "name": "Album",
+          "description": "Albumpfad auf dem Rahmen, Ebenen getrennt durch /. Fehlende Alben werden angelegt."
+        }
+      }
+    },
+    "set_album_hidden": {
+      "name": "Album ausblenden",
+      "description": "Blendet ein Album mit seinen Unteralben in der Diashow aus oder wieder ein.",
+      "fields": {
+        "album": {
+          "name": "Album",
+          "description": "Pfad des Albums, Ebenen getrennt durch /."
+        },
+        "hidden": {
+          "name": "Ausgeblendet",
+          "description": "An blendet das Album aus, aus blendet es wieder ein."
+        }
+      }
     }
   }
 }

@@ -90,6 +90,40 @@ show_caption: false
 
 After an update of the integration, reload the page in the browser once to get the new card.
 
+### Choosing the section and hiding the photo
+
+![The crop editor: the whole photo behind the frame's shape, the shown part inside](docs/crop-editor.png)
+
+For Home Assistant administrators the card shows two buttons on the photo, while a photo is on
+screen and the frame is not in safe mode; they need Home Assistant 2026.10 and openframe 0.6.0 or
+later, like the integration.
+
+- **Choose section** opens an editor for the photo on screen. The frame's shape stays fixed and the
+  whole photo moves behind it: drag to move the section; pinch, the mouse wheel or − and + zoom,
+  from the whole photo with black borders to one photo pixel per screen pixel. What is inside the
+  shape is what the frame shows. "Save" stores the section, "Automatic" removes it so that the
+  frame's fill mode applies again, "Cancel" closes without a change. The editor keeps the photo it
+  was opened for, also when the frame moves on.
+- **Hide photo** asks in the card first, then hides the photo the card shows; it does not appear in
+  the slideshow again. Show it again in the frame's web UI or with `openframe.set_photo_hidden`.
+
+## Media browser
+
+![The album "samples" of a frame in Home Assistant's media browser](docs/media-browser.png)
+
+With Home Assistant 2026.10 and openframe 0.6.0 or later, the media browser (Media in the
+sidebar) has an entry "openframe" with a folder per frame; with one frame it opens that frame's
+folder directly. A frame's folder lists "All photos" and its albums, an album its sub-albums and
+the photos directly in it, newest first and titled by their comment or file name. Hidden photos and
+albums are marked "(hidden)". A folder lists at most 500 photos and says so in its title, for
+example "holiday (500 of 1200)". Opening a photo shows it whole, at most 2048 pixels on its longest
+edge.
+
+Photos go through Home Assistant, so they are only shown to signed-in users and through links
+Home Assistant signed for an hour; the frame's address and token stay in Home Assistant. A folder
+is read from the frame when it is opened; while the frame does not answer or is in safe mode, the
+folder says so. A photo the frame cannot render is listed without a thumbnail.
+
 ## Entities
 
 Entity IDs follow the frame's name, for example `light.photo_frame_display` for a frame named
@@ -128,6 +162,36 @@ Entity IDs follow the frame's name, for example `light.photo_frame_display` for 
 A new album or source gets its entities within 15 seconds. The entities of a removed album or
 source stay and are unavailable, so automations that use them do not break silently; delete them
 on the device page when they are no longer needed.
+
+## Photo actions
+
+The integration adds actions that change a frame's photos and albums. They target frames as
+devices: in the automation editor, pick the frame; in YAML, give its device ID, the last part of
+the address of the frame's page under Settings › Devices & services › Devices. Administrators,
+automations and scripts may run them; for other users Home Assistant refuses them.
+
+| Action | Fields | Response |
+|---|---|---|
+| `openframe.set_photo_hidden` | `photo_id` (optional), `hidden` | the photo |
+| `openframe.set_photo_comment` | `photo_id` (optional), `comment` (empty removes it) | the photo |
+| `openframe.set_photo_crop` | `photo_id` (optional), `x`, `y`, `zoom` or `reset: true` | the photo |
+| `openframe.delete_photo` | `photo_id` (optional) | none |
+| `openframe.upload_photo` | `file_path` (one or more), `album` (optional) | the new photos |
+| `openframe.set_album_hidden` | `album`, `hidden` | none |
+
+- Without `photo_id`, a photo action changes the photo each targeted frame shows at that moment.
+  With `photo_id`, target exactly one frame. Photo IDs are in the responses of the actions.
+- The section of `set_photo_crop` is a focus point (`x` and `y` from 0 to 1, left to right and top
+  to bottom) and a `zoom`: 1 fills the screen, below 1 shows more of the photo with borders, above
+  1 a detail, at most 4.
+- `delete_photo` deletes only photos of the frame's own folder; photos of a Nextcloud share can only
+  be hidden.
+- `upload_photo` reads files only from folders Home Assistant may read: `/media` on Home Assistant
+  OS and in Docker, other folders after adding them to
+  [`allowlist_external_dirs`](https://www.home-assistant.io/integrations/homeassistant/#allowlist_external_dirs).
+  The frame stores all files of a call or none of them.
+- A response lists one entry per frame with `device_id`, `id`, `album`, `path`, `hidden`,
+  `visible`, `comment` and `crop`; ask for it with `response_variable` in a script.
 
 ## Automation examples
 
@@ -213,6 +277,50 @@ automation:
       - action: button.press
         target:
           entity_id: button.photo_frame_next_photo
+```
+
+Hide the photo on screen with a double press of the button on the wall; it does not come back in
+the slideshow (replace the device ID with your frame's):
+
+```yaml
+automation:
+  - alias: Hide this photo
+    triggers:
+      - trigger: event
+        event_type: zha_event
+        event_data:
+          command: double
+    actions:
+      - action: openframe.set_photo_hidden
+        target:
+          device_id: 0123456789abcdef0123456789abcdef
+        data:
+          hidden: true
+```
+
+Show who rang the doorbell on the frame, in the album `visitors`:
+
+```yaml
+automation:
+  - alias: Doorbell snapshot to the frame
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.doorbell
+        to: "on"
+    variables:
+      snapshot: "/media/snapshots/door_{{ now().strftime('%Y%m%d_%H%M%S') }}.jpg"
+    actions:
+      - action: camera.snapshot
+        target:
+          entity_id: camera.doorbell
+        data:
+          filename: "{{ snapshot }}"
+      - action: openframe.upload_photo
+        target:
+          device_id: 0123456789abcdef0123456789abcdef
+        data:
+          file_path: "{{ snapshot }}"
+          album: visitors
 ```
 
 ## Development
