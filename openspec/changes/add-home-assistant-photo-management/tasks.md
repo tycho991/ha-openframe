@@ -10,7 +10,7 @@
 - [x] 2.1 `services.py` and `services.yaml` per design decisions 1 and 2, translations in `en.json` and `de.json`, registered as admin services in `async_setup`; verify: tests for every scenario of "Target of a photo action", "Photo on screen by default", "Photo actions for administrators" and "Responses of photo actions" in `photo-actions`
 - [x] 2.2 `set_photo_hidden`, `set_photo_comment`, `set_photo_crop`, `delete_photo`, `set_album_hidden` with the error mapping of design decision 1 and the forced full tier; verify: tests for every scenario of "Hiding and showing a photo", "Comment of a photo", "Section of a photo", "Deleting a photo", "Hiding an album" and "Fresh entities after a photo action"
 - [x] 2.3 `upload_photo` with the path check and executor reads; verify: tests for every scenario of "Uploading photos", including that the fake frame receives no request for a refused path
-- [ ] 2.4 `README.md`: the actions with automation examples (hide the photo on screen from a button, snapshot of a doorbell camera to an album); verify: each example passes Home Assistant's config check in a test instance
+- [x] 2.4 `README.md`: the actions with automation examples (hide the photo on screen from a button, snapshot of a doorbell camera to an album); verify: each example passes Home Assistant's config check in a test instance
 
 ## 3. Image proxy and media browser
 

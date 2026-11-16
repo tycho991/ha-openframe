@@ -129,6 +129,36 @@ A new album or source gets its entities within 15 seconds. The entities of a rem
 source stay and are unavailable, so automations that use them do not break silently; delete them
 on the device page when they are no longer needed.
 
+## Photo actions
+
+The integration adds actions that change a frame's photos and albums. They target frames as
+devices: in the automation editor, pick the frame; in YAML, give its device ID, the last part of
+the address of the frame's page under Settings › Devices & services › Devices. Administrators,
+automations and scripts may run them; for other users Home Assistant refuses them.
+
+| Action | Fields | Response |
+|---|---|---|
+| `openframe.set_photo_hidden` | `photo_id` (optional), `hidden` | the photo |
+| `openframe.set_photo_comment` | `photo_id` (optional), `comment` (empty removes it) | the photo |
+| `openframe.set_photo_crop` | `photo_id` (optional), `x`, `y`, `zoom` or `reset: true` | the photo |
+| `openframe.delete_photo` | `photo_id` (optional) | none |
+| `openframe.upload_photo` | `file_path` (one or more), `album` (optional) | the new photos |
+| `openframe.set_album_hidden` | `album`, `hidden` | none |
+
+- Without `photo_id`, a photo action changes the photo each targeted frame shows at that moment.
+  With `photo_id`, target exactly one frame. Photo IDs are in the responses of the actions.
+- The section of `set_photo_crop` is a focus point (`x` and `y` from 0 to 1, left to right and top
+  to bottom) and a `zoom`: 1 fills the screen, below 1 shows more of the photo with borders, above
+  1 a detail, at most 4.
+- `delete_photo` deletes only photos of the frame's own folder; photos of a Nextcloud share can only
+  be hidden.
+- `upload_photo` reads files only from folders Home Assistant may read: `/media` on Home Assistant
+  OS and in Docker, other folders after adding them to
+  [`allowlist_external_dirs`](https://www.home-assistant.io/integrations/homeassistant/#allowlist_external_dirs).
+  The frame stores all files of a call or none of them.
+- A response lists one entry per frame with `device_id`, `id`, `album`, `path`, `hidden`,
+  `visible`, `comment` and `crop`; ask for it with `response_variable` in a script.
+
 ## Automation examples
 
 Display off when nobody is home, on again when someone comes back:
@@ -213,6 +243,50 @@ automation:
       - action: button.press
         target:
           entity_id: button.photo_frame_next_photo
+```
+
+Hide the photo on screen with a double press of the button on the wall; it does not come back in
+the slideshow (replace the device ID with your frame's):
+
+```yaml
+automation:
+  - alias: Hide this photo
+    triggers:
+      - trigger: event
+        event_type: zha_event
+        event_data:
+          command: double
+    actions:
+      - action: openframe.set_photo_hidden
+        target:
+          device_id: 0123456789abcdef0123456789abcdef
+        data:
+          hidden: true
+```
+
+Show who rang the doorbell on the frame, in the album `visitors`:
+
+```yaml
+automation:
+  - alias: Doorbell snapshot to the frame
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.doorbell
+        to: "on"
+    variables:
+      snapshot: "/media/snapshots/door_{{ now().strftime('%Y%m%d_%H%M%S') }}.jpg"
+    actions:
+      - action: camera.snapshot
+        target:
+          entity_id: camera.doorbell
+        data:
+          filename: "{{ snapshot }}"
+      - action: openframe.upload_photo
+        target:
+          device_id: 0123456789abcdef0123456789abcdef
+        data:
+          file_path: "{{ snapshot }}"
+          album: visitors
 ```
 
 ## Development
