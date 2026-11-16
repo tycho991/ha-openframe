@@ -21,7 +21,7 @@
 
 - [x] 4.1 WebSocket command `openframe/photo` per design decision 5; verify: tests for the answer with a photo on screen, without one, in safe mode, and refused for a non-admin user
 - [x] 4.2 `frontend/presentation.js` per design decision 6; verify: `node --test 'tests/frontend/*.test.mjs'` reads `tests/contract/presentation-cases.json` and every case matches within 1/10,000
-- [ ] 4.3 `frontend/crop-editor.js` and the crop button per design decision 6; verify: in a Home Assistant test instance, every scenario of "Crop editor on the card", "Saving a section from the card" and "Crop editor not offered" holds, with a screenshot per scenario in the pull request, and a `node --test` test of the drag and zoom clamping in the editor's model
+- [x] 4.3 `frontend/crop-editor.js` and the crop button per design decision 6; verify: in a Home Assistant test instance, every scenario of "Crop editor on the card", "Saving a section from the card" and "Crop editor not offered" holds, with a screenshot per scenario in the pull request, and a `node --test` test of the drag and zoom clamping in the editor's model
 - [ ] 4.4 Hide button per design decision 7; verify: every scenario of "Hiding the photo on screen from the card" holds in the test instance, and the card model's tests cover its visibility
 - [ ] 4.5 `README.md`: the media browser and the editor with screenshots; verify: the sections exist and name the minimum versions
 
