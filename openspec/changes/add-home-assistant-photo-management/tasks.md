@@ -15,7 +15,7 @@
 ## 3. Image proxy and media browser
 
 - [x] 3.1 `OpenframeImageView` per design decision 3; verify: tests that a request without session or signature gets 401 without a request to the fake frame, that a signed URL works until it expires, that the URL carries the photo's version and the frame is asked with `v`, that `ETag`, `Cache-Control`, 304 and 503 pass through, and that a `size` other than `thumb` or `full` and a malformed photo ID get 400 (`media-browser` › Photos only for signed-in users)
-- [ ] 3.2 `media_source.py` per design decision 4, `media_source` in the manifest's dependencies; verify: tests for every scenario of "Frames and albums as folders", "Photos in a folder", "Frame not available" and "Opening a photo", that a single frame skips the frame level, and that the resolved URL points to Home Assistant (`media-browser` › Photos only for signed-in users › Image source in the browser)
+- [x] 3.2 `media_source.py` per design decision 4, `media_source` in the manifest's dependencies; verify: tests for every scenario of "Frames and albums as folders", "Photos in a folder", "Frame not available" and "Opening a photo", that a single frame skips the frame level, and that the resolved URL points to Home Assistant (`media-browser` › Photos only for signed-in users › Image source in the browser)
 
 ## 4. Card
 

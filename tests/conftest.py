@@ -17,6 +17,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openframe.const import CONF_CLIENT_ID, DOMAIN
 from tests.fake_frame import FRAME_ID, FakeFrame
 
+# The frame ID of the second frame of the `other` fixture
+OTHER_ID = f"{FRAME_ID}-2"
+
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
@@ -47,6 +50,33 @@ async def frame(socket_enabled: None) -> AsyncGenerator[FakeFrame]:
     finally:
         await fake.stop()
     assert not fake.contract_errors, "\n".join(fake.contract_errors)
+
+
+@pytest.fixture
+async def other(
+    hass: HomeAssistant, entry: MockConfigEntry, socket_enabled: None
+) -> AsyncGenerator[FakeFrame]:
+    """A second frame, set up after the first one."""
+    frame = FakeFrame()
+    frame.info["id"] = OTHER_ID
+    frame.info["name"] = "Other frame"
+    await frame.start()
+    try:
+        base = mock_entry(frame)
+        config_entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Other frame",
+            unique_id=OTHER_ID,
+            data=base.data,
+            minor_version=2,
+        )
+        config_entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+        yield frame
+    finally:
+        await frame.stop()
+    assert not frame.contract_errors, "\n".join(frame.contract_errors)
 
 
 def mock_entry(frame: FakeFrame, **data: object) -> MockConfigEntry:

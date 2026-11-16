@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 
@@ -15,10 +14,8 @@ from homeassistant.helpers import device_registry as dr
 from pytest_homeassistant_custom_component.common import MockConfigEntry, MockUser
 
 from custom_components.openframe.const import DOMAIN
-from tests.conftest import entity_id, mock_entry, tick
+from tests.conftest import OTHER_ID, entity_id, tick
 from tests.fake_frame import FRAME_ID, FakeFrame
-
-OTHER_ID = f"{FRAME_ID}-2"
 
 
 def device_id(hass: HomeAssistant, frame_id: str = FRAME_ID) -> str:
@@ -47,33 +44,6 @@ async def act(
         return_response=response,
         context=context,
     )
-
-
-@pytest.fixture
-async def other(
-    hass: HomeAssistant, entry: MockConfigEntry, socket_enabled: None
-) -> AsyncGenerator[FakeFrame]:
-    """A second frame, set up after the first one."""
-    frame = FakeFrame()
-    frame.info["id"] = OTHER_ID
-    frame.info["name"] = "Other frame"
-    await frame.start()
-    try:
-        base = mock_entry(frame)
-        config_entry = MockConfigEntry(
-            domain=DOMAIN,
-            title="Other frame",
-            unique_id=OTHER_ID,
-            data=base.data,
-            minor_version=2,
-        )
-        config_entry.add_to_hass(hass)
-        assert await hass.config_entries.async_setup(config_entry.entry_id)
-        await hass.async_block_till_done()
-        yield frame
-    finally:
-        await frame.stop()
-    assert not frame.contract_errors, "\n".join(frame.contract_errors)
 
 
 # -- Target of a photo action ----------------------------------------------------------------
