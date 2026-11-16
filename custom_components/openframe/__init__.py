@@ -20,6 +20,7 @@ from .api import OpenframeClient, OpenframeError
 from .const import CONF_CLIENT_ID, DOMAIN
 from .coordinator import OpenframeConfigEntry, OpenframeCoordinator, outdated_issue_id
 from .entity import follow_app_version, source_names
+from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +56,9 @@ def _client(hass: HomeAssistant, entry: OpenframeConfigEntry) -> OpenframeClient
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Serve the dashboard card and load it into the frontend, once per Home Assistant start."""
+    """Register the photo actions, serve the dashboard card and load it into the frontend, once
+    per Home Assistant start."""
+    async_setup_services(hass)
     integration = await async_get_integration(hass, DOMAIN)
     # Without cache headers the browser asks again on each page load: the card imports its model
     # without the version parameter, and a cached model must not outlive an update

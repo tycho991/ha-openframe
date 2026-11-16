@@ -1,0 +1,109 @@
+set_photo_hidden:
+  target:
+    device:
+      integration: openframe
+  fields:
+    photo_id:
+      example: local-0123456789abcdef0123456789abcdef01234567
+      selector:
+        text:
+    hidden:
+      required: true
+      default: true
+      selector:
+        boolean:
+
+set_photo_comment:
+  target:
+    device:
+      integration: openframe
+  fields:
+    photo_id:
+      example: local-0123456789abcdef0123456789abcdef01234567
+      selector:
+        text:
+    comment:
+      required: true
+      example: Summer 2025
+      selector:
+        text:
+
+set_photo_crop:
+  target:
+    device:
+      integration: openframe
+  fields:
+    photo_id:
+      example: local-0123456789abcdef0123456789abcdef01234567
+      selector:
+        text:
+    x:
+      example: 0.5
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.01
+          mode: slider
+    y:
+      example: 0.2
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.01
+          mode: slider
+    zoom:
+      example: 1
+      selector:
+        number:
+          min: 0.05
+          max: 4
+          step: 0.05
+          mode: slider
+    reset:
+      default: false
+      selector:
+        boolean:
+
+delete_photo:
+  target:
+    device:
+      integration: openframe
+  fields:
+    photo_id:
+      example: local-0123456789abcdef0123456789abcdef01234567
+      selector:
+        text:
+
+upload_photo:
+  target:
+    device:
+      integration: openframe
+  fields:
+    file_path:
+      required: true
+      example: /media/snapshots/door.jpg
+      selector:
+        text:
+          multiple: true
+    album:
+      example: visitors
+      selector:
+        text:
+
+set_album_hidden:
+  target:
+    device:
+      integration: openframe
+  fields:
+    album:
+      required: true
+      example: holiday/2024
+      selector:
+        text:
+    hidden:
+      required: true
+      default: true
+      selector:
+        boolean:

@@ -87,36 +87,39 @@ class OpenframeEntity(CoordinatorEntity[OpenframeCoordinator]):
 
     async def command[T](self, call: Awaitable[T]) -> T:
         """Run a command; a refusal or no answer becomes a translated error."""
-        try:
-            return await call
-        except OpenframeAuthError as err:
-            self.coordinator.config_entry.async_start_reauth(self.hass)
-            raise HomeAssistantError(
-                translation_domain=DOMAIN, translation_key="unauthorized"
-            ) from err
-        except OpenframeConnectionError as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN, translation_key="no_answer"
-            ) from err
-        except OpenframeResponseError as err:
-            if err.code in KNOWN_REFUSALS:
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN, translation_key=self._refusal_key(err.code)
-                ) from err
-            # A refused value names its reason per field; the message itself is generic then
-            reason = "; ".join(err.fields.values()) if err.fields else err.message
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="refused",
-                translation_placeholders={"message": reason},
-            ) from err
+        return await run_command(self.coordinator, call)
 
-    def _refusal_key(self, code: str) -> str:
-        """The translation key of a known refusal; a cooldown names why the frame declines."""
-        if code != "install_cooldown":
-            return code
-        error = self.data.update["error"] if self.data else None
-        return COOLDOWN_CAUSES.get(error["code"] if error else "", code)
+
+async def run_command[T](coordinator: OpenframeCoordinator, call: Awaitable[T]) -> T:
+    """Run a request of an entity or an action; a refusal or no answer becomes a translated
+    error, and a rejected token starts the re-authentication."""
+    try:
+        return await call
+    except OpenframeAuthError as err:
+        coordinator.config_entry.async_start_reauth(coordinator.hass)
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="unauthorized") from err
+    except OpenframeConnectionError as err:
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="no_answer") from err
+    except OpenframeResponseError as err:
+        if err.code in KNOWN_REFUSALS:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key=refusal_key(coordinator, err.code)
+            ) from err
+        # A refused value names its reason per field; the message itself is generic then
+        reason = "; ".join(err.fields.values()) if err.fields else err.message
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="refused",
+            translation_placeholders={"message": reason},
+        ) from err
+
+
+def refusal_key(coordinator: OpenframeCoordinator, code: str) -> str:
+    """The translation key of a known refusal; a cooldown names why the frame declines."""
+    if code != "install_cooldown":
+        return code
+    error = coordinator.data.update["error"] if coordinator.data else None
+    return COOLDOWN_CAUSES.get(error["code"] if error else "", code)
 
 
 def add_dynamic_entities(

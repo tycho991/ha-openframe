@@ -23,14 +23,14 @@ After `add-home-assistant-integration` and `add-home-assistant-card` the integra
 
 | Action | Fields | Frame request | Response |
 |---|---|---|---|
-| `set_photo_hidden` | `photo_id?`, `hidden` | `PATCH /photos/{id}` | photo |
-| `set_photo_comment` | `photo_id?`, `comment` (empty removes) | `PATCH /photos/{id}` (`null` for empty) | photo |
-| `set_photo_crop` | `photo_id?`, `x`, `y`, `zoom` or `reset` | `PATCH /photos/{id}` | photo |
+| `set_photo_hidden` | `photo_id?`, `hidden` | `PATCH /photos/{id}` | `{photos: [record]}` |
+| `set_photo_comment` | `photo_id?`, `comment` (empty removes) | `PATCH /photos/{id}` (`null` for empty) | `{photos: [record]}` |
+| `set_photo_crop` | `photo_id?`, `x`, `y`, `zoom` or `reset` | `PATCH /photos/{id}` | `{photos: [record]}` |
 | `delete_photo` | `photo_id?` | `DELETE /photos/{id}` | none |
 | `upload_photo` | `file_path` (list), `album?` | `POST /photos` | `{photos: [{id, path, album}]}` |
 | `set_album_hidden` | `album`, `hidden` | `PATCH /albums` | none |
 
-The voluptuous schemas check ranges before the frame is asked (`x`, `y` in [0, 1], `zoom` in (0, 4], `x`/`y`/`zoom` all present or `reset` true). Responses are `SupportsResponse.OPTIONAL` except for `upload_photo` (`ONLY` is not used; the upload is useful without a response too). Frame errors map to translated `HomeAssistantError`s: 404 → `photo_not_found`, 409 `read_only_source` → `read_only_source`, 415 → `unsupported_format` with the frame's message, 507 → `storage_full`, 400 with `fields` → the field names. After a successful action the coordinator's full tier is forced.
+A photo action without an ID may target several frames, so its response lists one record per frame: `device_id`, `id`, `album`, `path`, `hidden`, `visible`, `comment`, `crop`. The schemas check ranges before the frame is asked (`x`, `y` in [0, 1], `zoom` in (0, 4]); the handler checks, also before the frame is asked, that `x`/`y`/`zoom` are all present or `reset` is true, so that this error is translated. A frame that fails does not stop the others; its error is raised after all have acted. Responses are `SupportsResponse.OPTIONAL` except for `upload_photo` (`ONLY` is not used; the upload is useful without a response too). Frame errors map to translated `HomeAssistantError`s: 404 → `photo_not_found`, 409 `read_only_source` → `read_only_source`, 415 → `unsupported_format` with the frame's message, 507 → `storage_full`, 400 with `fields` → the field names. After a successful action the coordinator's full tier is forced.
 
 *Alternative:* entity services on the image entity. Rejected: the actions belong to the frame, not to one entity, and `upload_photo` has nothing to do with the photo on screen.
 

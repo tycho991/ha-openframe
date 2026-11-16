@@ -289,12 +289,142 @@
     },
     "refused": {
       "message": "The frame refused the command: {message}"
+    },
+    "no_frame": {
+      "message": "The action targets no openframe frame that is set up and running."
+    },
+    "photo_id_one_frame": {
+      "message": "A photo ID belongs to one frame: target exactly one frame, or leave out the photo ID to change the photo on screen."
+    },
+    "upload_one_frame": {
+      "message": "An upload goes to one frame: target exactly one frame."
+    },
+    "no_photo_on_screen": {
+      "message": "{frame} shows no photo."
+    },
+    "photo_not_found": {
+      "message": "The frame has no photo with this ID."
+    },
+    "album_not_found": {
+      "message": "The frame has no album with this path."
+    },
+    "read_only_source": {
+      "message": "Photos of a remote source can only be hidden, not deleted."
+    },
+    "unsupported_format": {
+      "message": "The frame did not store the files: {message}"
+    },
+    "storage_full": {
+      "message": "The frame did not store the files: not enough free storage."
+    },
+    "path_not_allowed": {
+      "message": "Home Assistant may not read {path}. Add its folder to allowlist_external_dirs."
+    },
+    "file_not_readable": {
+      "message": "{path} cannot be read."
+    },
+    "crop_or_reset": {
+      "message": "Give x, y and zoom for a section, or reset to remove it."
     }
   },
   "issues": {
     "outdated_frame": {
       "title": "{name} needs a newer openframe",
       "description": "{name} lacks something this integration needs, for example because an older openframe was installed on it. Update the frame to openframe {version} or later; Home Assistant connects again by itself."
+    }
+  },
+  "services": {
+    "set_photo_hidden": {
+      "name": "Hide photo",
+      "description": "Hides a photo from the slideshow or shows it again.",
+      "fields": {
+        "photo_id": {
+          "name": "Photo ID",
+          "description": "ID of the photo, as in the media browser or an action's response. Without it, the action changes the photo each targeted frame shows right now; with it, target exactly one frame."
+        },
+        "hidden": {
+          "name": "Hidden",
+          "description": "On hides the photo, off shows it again, unless its album is hidden."
+        }
+      }
+    },
+    "set_photo_comment": {
+      "name": "Set photo comment",
+      "description": "Sets the comment the frame shows in the caption of a photo.",
+      "fields": {
+        "photo_id": {
+          "name": "Photo ID",
+          "description": "ID of the photo, as in the media browser or an action's response. Without it, the action changes the photo each targeted frame shows right now; with it, target exactly one frame."
+        },
+        "comment": {
+          "name": "Comment",
+          "description": "The new comment; an empty comment removes it."
+        }
+      }
+    },
+    "set_photo_crop": {
+      "name": "Set photo section",
+      "description": "Sets the part of a photo the frame shows, or removes it so that the fill mode applies again.",
+      "fields": {
+        "photo_id": {
+          "name": "Photo ID",
+          "description": "ID of the photo, as in the media browser or an action's response. Without it, the action changes the photo each targeted frame shows right now; with it, target exactly one frame."
+        },
+        "x": {
+          "name": "Focus x",
+          "description": "Horizontal focus point, from 0 (left edge) to 1 (right edge)."
+        },
+        "y": {
+          "name": "Focus y",
+          "description": "Vertical focus point, from 0 (top edge) to 1 (bottom edge)."
+        },
+        "zoom": {
+          "name": "Zoom",
+          "description": "1 fills the screen, below 1 shows more of the photo with borders, above 1 a detail; at most 4."
+        },
+        "reset": {
+          "name": "Reset",
+          "description": "Removes the section instead of setting one."
+        }
+      }
+    },
+    "delete_photo": {
+      "name": "Delete photo",
+      "description": "Deletes a photo from the frame's own folder. Photos of a remote source can only be hidden.",
+      "fields": {
+        "photo_id": {
+          "name": "Photo ID",
+          "description": "ID of the photo, as in the media browser or an action's response. Without it, the action changes the photo each targeted frame shows right now; with it, target exactly one frame."
+        }
+      }
+    },
+    "upload_photo": {
+      "name": "Upload photo",
+      "description": "Uploads files from folders Home Assistant may read (allowlist_external_dirs) to one frame.",
+      "fields": {
+        "file_path": {
+          "name": "Files",
+          "description": "Paths of the files to upload."
+        },
+        "album": {
+          "name": "Album",
+          "description": "Album path on the frame, levels separated by /. Missing albums are created."
+        }
+      }
+    },
+    "set_album_hidden": {
+      "name": "Hide album",
+      "description": "Hides an album with its sub-albums from the slideshow or shows it again.",
+      "fields": {
+        "album": {
+          "name": "Album",
+          "description": "Path of the album, levels separated by /."
+        },
+        "hidden": {
+          "name": "Hidden",
+          "description": "On hides the album, off shows it again."
+        }
+      }
     }
   }
 }
