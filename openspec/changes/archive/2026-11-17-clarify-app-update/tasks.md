@@ -20,7 +20,7 @@
 ## 5. Devices
 
 - [x] 5.1 Rows in `../openframe-private/DEVICE_TEST.md` with their references: Settings › Updates and the update dialog on the owner's Home Assistant with the next openframe release (› App update entity › Two updates named openframe, › Confirmation on the frame), and an install request left unanswered, then a second request (› Refused installation › Dialog not confirmed); verify: the rows exist with their references
-- [ ] 5.2 Run the rows of 5.1 after the release, asking before every persistent change on a frame or on the owner's Home Assistant; verify: results entered, and a finding in `../openframe-private/FINDINGS.md` for anything that differs
+- [x] 5.2 Run the rows of 5.1 after the release, asking before every persistent change on a frame or on the owner's Home Assistant; verify: results entered, and a finding in `../openframe-private/FINDINGS.md` for anything that differs
 
 ## 6. Integration
 
